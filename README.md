@@ -24,12 +24,12 @@ VulnHunter scans dependency files from common ecosystems like:
 
 And checks each dependency/version against a locally converted NVD database, using a custom CPE alias index to improve accuracy.
 
-## Why offline?
+## 🔒 Why choose VulnHunter?
 
-* No internet? No problem.
-* Faster results with zero network delay
-* Ideal for air-gapped or restricted environments
-* Your data never leaves your machine
+- 🚫 **No internet required** — Works 100% offline
+- ⚡ **Fast scans** — Zero network delays
+- 🛡️ **Secure by design** — No external APIs
+- 🧱 **Ideal for restricted & air-gapped systems**
 
 ## Features
 
