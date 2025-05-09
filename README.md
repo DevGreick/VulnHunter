@@ -1,10 +1,8 @@
 # VulnHunter
 
-
 <p align="center">
   <img src="logo.png" alt="VulnHunter logo" width="200">
 </p>
-
 
 Offline vulnerability scanner for project dependencies.
 No API calls, no cloud, just raw CVE hunting on your machine.
@@ -47,21 +45,45 @@ And checks each dependency/version against a **locally converted NVD database**,
 1. Update the NVD data and convert it to minimal format:
 
 ```bash
-python3.13 scripts/update_nvd.py --convert
+python3 -m scan --update-nvd
 ```
 
 2. Run the scan on your dependency files:
 
 ```bash
-python3.13 scan.py --dir inputs/
+python3 -m scan --dir path/to/your/project
 ```
 
 3. Example result:
 
 ```
-Package: flask@2.3.3
-CVE: CVE-2023-12345 - Critical - Arbitrary code execution
-CVE: CVE-2022-99999 - Medium - Denial of Service
+## Language: PYTHON
+
+  ### Library: flask@2.3.3
+    Severity: CRITICAL
+      - CVE-2023-12345
+    Severity: MEDIUM
+      - CVE-2022-99999
+```
+
+## CLI help
+
+To see all available options:
+
+```bash
+python3.13 -m scan --help
+```
+
+Expected output:
+
+```
+usage: scan.py [-h] --dir DIR [--nvd NVD_PATH] [--cpe_index CPE_INDEX]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --dir DIR             Directory containing dependency files
+  --nvd NVD_PATH        Path to the NVD JSON file (default: data/nvd_cve_rebuilt.json)
+  --cpe_index CPE_INDEX Path to the CPE alias index file (default: data/cpe/cpe_alias_index.json)
 ```
 
 ## Requirements
