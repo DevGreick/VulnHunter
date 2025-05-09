@@ -1,3 +1,0 @@
-flask==2.3.3
-requests==2.19.1
-django==1.11.15
