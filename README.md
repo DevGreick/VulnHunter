@@ -4,8 +4,8 @@
   <img src="logo.png" alt="VulnHunter logo" width="200">
 </p>
 
-Offline vulnerability scanner for project dependencies.
-No API calls, no cloud, just raw CVE hunting on your machine.
+Offline vulnerability scanner for project dependencies,
+no API calls, no cloud, just raw CVE hunting on your machine.
 
 ![Python](https://img.shields.io/badge/Python-3.13%2B-blue)
 ![Status](https://img.shields.io/badge/Offline-Yes-brightgreen)
