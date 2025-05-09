@@ -22,7 +22,7 @@ VulnHunter scans dependency files from common ecosystems like:
 * Ruby (`Gemfile.lock`)
 * Go (`go.mod`)
 
-And checks each dependency/version against a **locally converted NVD database**, using a custom CPE alias index to improve accuracy.
+And checks each dependency/version against a locally converted NVD database, using a custom CPE alias index to improve accuracy.
 
 ## Why offline?
 
@@ -42,19 +42,47 @@ And checks each dependency/version against a **locally converted NVD database**,
 
 ## How to use
 
-1. Update the NVD data and convert it to minimal format:
+1. Set up your environment and install dependencies:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+Note: Make sure to have a `requirements.txt` file in your repository containing: `requests`, `packaging`, `pydantic`, `pytest`.
+
+2. Update local NVD and CPE data:
 
 ```bash
 python3 -m scan --update-nvd
 ```
 
-2. Run the scan on your dependency files:
+This command downloads and processes NVD feeds and the CPE dictionary. It requires internet access and may take several minutes on the first run.
+
+3. Run the scan on your project:
 
 ```bash
 python3 -m scan --dir path/to/your/project
 ```
 
-3. Example result:
+You can also scan specific files or multiple paths:
+
+```bash
+python3 -m scan --dir ./your/requirements.txt ./another/project/pom.xml
+```
+
+Or use the test input files included in this repository:
+
+```bash
+python3 -m scan --dir inputs/
+```
+
+4. Review the results:
+
+Check the console output for a summary and detailed list of vulnerabilities. A `reports/report.json` file will also be generated.
+
+Example:
 
 ```
 ## Language: PYTHON
@@ -66,12 +94,20 @@ python3 -m scan --dir path/to/your/project
       - CVE-2022-99999
 ```
 
+5. Optional: Manage false positives
+
+Create a `.vulnignore` file in the project root to ignore specific CVEs. See the format by running:
+
+```bash
+python3 -m scan --help
+```
+
 ## CLI help
 
 To see all available options:
 
 ```bash
-python3.13 -m scan --help
+python3 -m scan --help
 ```
 
 Expected output:
@@ -89,7 +125,7 @@ optional arguments:
 ## Requirements
 
 * Python 3.13+
-* No internet access needed during scan
+* Internet access only required for `--update-nvd`
 * Works on Linux, macOS and Windows
 
 ## Ideal use cases
