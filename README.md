@@ -26,10 +26,11 @@ And checks each dependency/version against a locally converted NVD database, usi
 
 ## 🔒 Why choose VulnHunter?
 
-- 🚫 **No internet required** — Works 100% offline
-- ⚡ **Fast scans** — Zero network delays
-- 🛡️ **Secure by design** — No external APIs
-- 🧱 **Ideal for restricted & air-gapped systems**
+- 🚫 **No live internet calls during scans** — All lookups are local
+- 📦 **Offline-ready** — Just download the CVE data once, then scan offline
+- ⚡ **Fast scans** — Zero network delay
+- 🛡️ **Secure by design** — No external APIs at runtime
+- 🧱 **Ideal for air-gapped or restricted systems**
 
 ## Features
 
