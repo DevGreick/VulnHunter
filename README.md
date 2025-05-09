@@ -42,7 +42,14 @@ And checks each dependency/version against a locally converted NVD database, usi
 
 ## How to use
 
-1. Set up your environment and install dependencies:
+1. Clone the repository
+
+```bash
+git clone https://github.com/DevGreick/VulnHunter
+cd VulnHunter
+```
+
+2. Set up your environment and install dependencies:
 
 ```bash
 python3 -m venv .venv
@@ -52,7 +59,7 @@ pip install -r requirements.txt
 
 Note: Make sure to have a `requirements.txt` file in your repository containing: `requests`, `packaging`, `pydantic`, `pytest`.
 
-2. Update local NVD and CPE data:
+3. Update local NVD and CPE data:
 
 ```bash
 python3 -m scan --update-nvd
@@ -60,7 +67,7 @@ python3 -m scan --update-nvd
 
 This command downloads and processes NVD feeds and the CPE dictionary. It requires internet access and may take several minutes on the first run.
 
-3. Run the scan on your project:
+4. Run the scan on your project:
 
 ```bash
 python3 -m scan --dir path/to/your/project
@@ -78,7 +85,7 @@ Or use the test input files included in this repository:
 python3 -m scan --dir inputs/
 ```
 
-4. Review the results:
+5. Review the results:
 
 Check the console output for a summary and detailed list of vulnerabilities. A `reports/report.json` file will also be generated.
 
@@ -94,7 +101,7 @@ Example:
       - CVE-2022-99999
 ```
 
-5. Optional: Manage false positives
+6. Optional: Manage false positives
 
 Create a `.vulnignore` file in the project root to ignore specific CVEs. See the format by running:
 
