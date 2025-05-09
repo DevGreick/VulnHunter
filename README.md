@@ -1,5 +1,11 @@
 # VulnHunter
 
+
+<p align="center">
+  <img src="logo.png" alt="VulnHunter logo" width="200">
+</p>
+
+
 Offline vulnerability scanner for project dependencies.
 No API calls, no cloud, just raw CVE hunting on your machine.
 
