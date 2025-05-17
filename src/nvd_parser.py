@@ -74,7 +74,7 @@ def is_dependency_vulnerable(dependency: Dependency, cve_item: Dict[str, Any]) -
 
     dep_version_parsed = _parse_version(dependency.version)
     if not dep_version_parsed:
-         # If dependency version cannot be parsed, cannot compare
+         
         print(f"Warning: Could not parse dependency version: {dependency.name}@{dependency.version}")
         return False, []
 
@@ -108,7 +108,7 @@ def is_dependency_vulnerable(dependency: Dependency, cve_item: Dict[str, Any]) -
                     product = cpe_parts[4].lower() 
 
                   
-                    if product == dependency.name.lower() or dependency.name.lower() in product: # Tentativa heurística
+                    if product == dependency.name.lower() or dependency.name.lower() in product: 
 
                      
                         version_start_inc = cpe_match.get("versionStartIncluding")
