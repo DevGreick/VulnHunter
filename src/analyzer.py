@@ -102,7 +102,7 @@ class VulnerabilityAnalyzer:
             potential_names.add('vmware:spring-framework')
             potential_names.add('pivotal_software:spring-framework')
             potential_names.add('vmware:spring-core')
-            potential_names.add('pivotal:spring-core') # Ajustado de pivotal_software
+            potential_names.add('pivotal:spring-core') 
             potential_names.add('pivotal_software:spring-core')
         elif dependency_name_lower == 'laravel/framework':
             potential_names.add('framework')
@@ -139,7 +139,7 @@ class VulnerabilityAnalyzer:
             if isinstance(aliases_list, list):
                 lowercase_aliases = {alias.lower() for alias in aliases_list if isinstance(alias, str)}
                 if dependency_name_lower in lowercase_aliases:
-                    product_key_lower = product_key.lower() # product_key aqui deve ser vendor:product
+                    product_key_lower = product_key.lower() 
                     keys_found_in.append(product_key_lower)
                     keys_to_add.add(product_key_lower)
                     aliases_to_add.update(lowercase_aliases)
@@ -298,7 +298,7 @@ class VulnerabilityAnalyzer:
                             break
 
 
-                    # End of loop through ranges for one CVE
+                   
 
                 if is_vulnerable:
                     found_vuln = Vulnerability(
