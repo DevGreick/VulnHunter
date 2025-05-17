@@ -191,7 +191,7 @@ class VulnerabilityAnalyzer:
             for nvd_item in self.nvd_data:
                 if not isinstance(nvd_item, dict): continue
 
-                nvd_product_name = nvd_item.get("name", "").lower() # Este agora é 'vendor:product'
+                nvd_product_name = nvd_item.get("name", "").lower() 
                 cve_id = nvd_item.get("cve_id")
 
                 if not nvd_product_name or not cve_id: continue
@@ -255,7 +255,7 @@ class VulnerabilityAnalyzer:
                                 else: range_parts_desc.append(f">={vsi_str}")
                             else:
                                 logger.debug(f"Cannot evaluate range for {cve_id}: start bound '{vsi_str}' unparseable. Skipping this check in range.")
-                                version_in_current_range = False # Se o bound é inválido, a faixa não pode ser confiavelmente verificada
+                                version_in_current_range = False 
 
                         if version_in_current_range and vse_str:
                             vse_obj = _parse_version_safely(vse_str)
@@ -284,17 +284,14 @@ class VulnerabilityAnalyzer:
                                    logger.debug(f"Cannot evaluate range for {cve_id}: end-ex bound '{vee_str}' unparseable. Skipping this check in range.")
                                    version_in_current_range = False
 
-                        if version_in_current_range and range_parts_desc: # Só considera um match se a versão estava em range E pelo menos um bound foi avaliado
+                        if version_in_current_range and range_parts_desc:
                             range_desc_str = ', '.join(range_parts_desc)
                             logger.debug(f"VERSION MATCHED (RANGE): {dep_name_original}@{dep_version_str} satisfies ({range_desc_str}) for {cve_id}")
                             is_vulnerable = True
                             matching_range_info.append(f"range: ({range_desc_str})")
                             break
                         elif version_in_current_range and not range_parts_desc and not (vsi_str or vse_str or vei_str or vee_str):
-                            # Se não havia bounds definidos no range_dict, mas passamos por aqui, significa que
-                            # a NVD pode estar indicando "qualquer versão" para este cpe_entry particular se associado a esta CVE.
-                            # Isso deve ser raro se convert_nvd só adiciona range_data com conteúdo.
-                            # Se esta lógica for alcançada, significa que o nome bateu e não há ranges para invalidar.
+                          
                             logger.debug(f"Name matched {dep_name_original} for {cve_id}, and no specific version bounds were defined or parseable in NVD range entry {v_range_dict}. Assuming vulnerable.")
                             is_vulnerable = True
                             matching_range_info.append("no specific NVD bounds, name matched")
@@ -311,12 +308,12 @@ class VulnerabilityAnalyzer:
                         severity=severity.upper(),
                         summary=summary
                     )
-                    if found_vuln not in dep_vulns: # Evita duplicatas da mesma CVE para a mesma dep/versão
+                    if found_vuln not in dep_vulns:
                         dep_vulns.append(found_vuln)
 
             if not match_found_for_dep:
                  debug_names = ["spring-core", "laravel-framework", "guzzlehttp-guzzle", "flask", "django", "requests", "express", "lodash", "rails", "pg"]
-                 if dep_name_lower in debug_names: # Loga INFO apenas para esta lista, outros casos seriam DEBUG.
+                 if dep_name_lower in debug_names: 
                     logger.info(f"No matching NVD product name found for dependency: {dep_name_original}")
             elif dep_vulns:
                  logger.info(f"Found {len(dep_vulns)} vulnerabilities for {dep_name_original}@{dep_version_str}")
