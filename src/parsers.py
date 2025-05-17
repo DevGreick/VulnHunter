@@ -296,7 +296,7 @@ class DependencyParser:
 
     def _parse_go_mod(self) -> List[Dependency]:
         dependencies = []
-        logger.debug(f"go.mod: Iniciando análise para {self.file_path.name}.") # Log DEBUG inicial mantido
+        logger.debug(f"go.mod: Iniciando análise para {self.file_path.name}.") 
         try:
             with open(self.file_path, "r", encoding="utf-8") as f:
                 in_require_block = False
@@ -346,7 +346,7 @@ class DependencyParser:
                             logger.debug(f"go.mod: Parsed dependency: {name}@{version_final}") 
                         
                     elif is_require_line:
-                         logger.debug(f"go.mod: Skipping line in require context (not enough parts or malformed): {line}") # Log DEBUG para linhas 'require' problemáticas
+                         logger.debug(f"go.mod: Skipping line in require context (not enough parts or malformed): {line}") 
                     elif not (line.startswith("module ") or line.startswith("go ") or \
                               line.startswith("replace ") or line.startswith("exclude ") or \
                               line.startswith("retract ") or line == ")"): 
