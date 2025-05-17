@@ -1,4 +1,3 @@
-# VulnHunter
 
 <p align="center">
   <img src="logo.png" alt="VulnHunter logo" width="200">
