@@ -1,6 +1,6 @@
 # Comentário
 click>=7.0
-Django==3.2 # Com versão exata
+Django==4.2.21 # Com versão exata
 numpy~=1.20
 # Linha vazia
 
