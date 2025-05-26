@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # Security Policy
 
 ## Supported Versions
@@ -12,7 +12,7 @@ As of now, VulnHunter supports security updates only for the following versions:
 
 Only the latest `1.0.x` series is actively maintained. Older versions do not receive security updates.
 
----
+
 
 ## Reporting a Vulnerability
 
@@ -32,7 +32,7 @@ If the issue is confirmed, we will:
 - Credit you (if requested)
 - Coordinate a responsible disclosure timeline if necessary
 
-=======
+
 # Security Policy
 
 ## Supported Versions
@@ -46,7 +46,7 @@ As of now, VulnHunter supports security updates only for the following versions:
 
 Only the latest `1.0.x` series is actively maintained. Older versions do not receive security updates.
 
----
+
 
 ## Reporting a Vulnerability
 
@@ -66,5 +66,4 @@ If the issue is confirmed, we will:
 - Credit you (if requested)
 - Coordinate a responsible disclosure timeline if necessary
 
->>>>>>> f974b67915d2818a8a5fe4d31bd2baaee323238e
 We take security seriously and appreciate your responsible report.
