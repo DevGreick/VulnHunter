@@ -52,7 +52,8 @@ To ensure accurate transitive analysis, prepare your project using the tools fro
 
 You can also inspect transitive trees manually with tools like `npm ls`, `mvn dependency:tree`, or `composer show --tree`.
 
-**The scanner does not run install commands or modify your files,** your project remains untouched.
+**The scanner does not run install commands or modify anything.** Your project remains completely untouched.
+
 
 ## How to use
 
