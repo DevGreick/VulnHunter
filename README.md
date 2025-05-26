@@ -32,12 +32,29 @@ And checks each dependency/version against a locally converted NVD database, usi
 
 ## Features
 
-* Detects known CVEs in your dependencies
+* Detects known CVEs in your dependencies (direct and transitive)
 * Uses locally converted NVD feeds (no API required)
 * Built-in support for multiple languages and formats
 * Custom CPE alias resolver (flask, guzzle, etc)
 * Clean CLI output: name, version, CVEs found
 * Modular Python codebase (Pydantic v2, argparse, logging)
+
+## Preparing the Target Project for Transitive Analysis
+
+VulnHunter detects vulnerabilities in both direct and transitive dependencies, to ensure accurate results, the target project must have its dependencies properly installed or resolved.
+
+**The scanner does not run install commands or modify your files,** your project remains untouched.
+
+
+
+To ensure accurate transitive analysis, prepare your project using the tools from its ecosystem:
+
+- **Node.js**: Run `npm install` to generate `package-lock.json` and `node_modules/`
+- **Java (Maven)**: Run `mvn dependency:tree` or `mvn clean install` to ensure all dependencies are available
+- **PHP**: Run `composer install` to create `composer.lock` and the `vendor/` directory
+- **Go**: Run `go mod tidy` or `go mod download` to update the Go module cache
+
+You can also inspect transitive trees manually with tools like `npm ls`, `mvn dependency:tree`, or `composer show --tree`.
 
 ## How to use
 
