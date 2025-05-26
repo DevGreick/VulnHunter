@@ -85,4 +85,6 @@ data/nvd_cve.json
 data/nvd_cve.json.gz
 
 # Reports
-reports/*.json
+reports/*.json"data/cpe/cpe_alias_index.json" 
+"data/cpe/official-cpe-dictionary_v2.3.xml" 
+"data/nvd_cve_rebuilt.json" 
