@@ -18,7 +18,6 @@ from src.analyzer import VulnerabilityAnalyzer
 from src.models import Dependency, Vulnerability
 from src.report_generator import generate_json_report
 
-# Nível de log ajustado para DEBUG
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("scan")
 
