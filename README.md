@@ -43,10 +43,6 @@ And checks each dependency/version against a locally converted NVD database, usi
 
 VulnHunter detects vulnerabilities in both direct and transitive dependencies, to ensure accurate results, the target project must have its dependencies properly installed or resolved.
 
-**The scanner does not run install commands or modify your files,** your project remains untouched.
-
-
-
 To ensure accurate transitive analysis, prepare your project using the tools from its ecosystem:
 
 - **Node.js**: Run `npm install` to generate `package-lock.json` and `node_modules/`
@@ -55,6 +51,8 @@ To ensure accurate transitive analysis, prepare your project using the tools fro
 - **Go**: Run `go mod tidy` or `go mod download` to update the Go module cache
 
 You can also inspect transitive trees manually with tools like `npm ls`, `mvn dependency:tree`, or `composer show --tree`.
+
+**The scanner does not run install commands or modify your files,** your project remains untouched.
 
 ## How to use
 
