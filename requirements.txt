@@ -1,4 +1,10 @@
+<<<<<<< HEAD
 requests
 packaging
 pydantic
+=======
+requests
+packaging
+pydantic
+>>>>>>> f974b67915d2818a8a5fe4d31bd2baaee323238e
 pytest

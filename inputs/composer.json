@@ -1,6 +1,13 @@
 {
   "require": {
+<<<<<<< HEAD
     "laravel/framework": "^10.0",
     "guzzlehttp/guzzle": "^7.5"
   }
 }
+=======
+    "laravel/framework": "8.0",
+    "guzzlehttp/guzzle": "7.0.1"
+  }
+}
+>>>>>>> f974b67915d2818a8a5fe4d31bd2baaee323238e

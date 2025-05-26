@@ -1,6 +1,10 @@
 # Comentário
 click>=7.0
+<<<<<<< HEAD
 Django==3.2 # Com versão exata
+=======
+Django==4.2.21 # Com versão exata
+>>>>>>> f974b67915d2818a8a5fe4d31bd2baaee323238e
 numpy~=1.20
 # Linha vazia
 
