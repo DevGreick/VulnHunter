@@ -4,7 +4,7 @@ import json
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import List, Callable, Dict, Set, Tuple, Optional
-import subprocess  # Required for executing external commands
+import subprocess  
 import os 
 import platform 
 
@@ -75,7 +75,7 @@ class DependencyParser:
     def _execute_command(self, cmd: List[str], cwd: Path) -> Optional[str]:
         current_cmd = list(cmd)
         try:
-            # Maven-specific logging (can be reverted to DEBUG later if stable)
+            
             if current_cmd[0] == "mvn": 
                 logger.warning(f"Original command for mvn: \"{' '.join(current_cmd)}\" in \"{cwd}\"")
                 logger.warning(f"Python's current PATH for mvn: {os.environ.get('PATH')}")
@@ -84,7 +84,7 @@ class DependencyParser:
                     logger.warning("Detected Windows OS, attempting to use 'mvn.cmd'")
                     current_cmd[0] = "mvn.cmd"
             
-            # Composer-specific logging (can be reverted to DEBUG later if stable)
+            
             if current_cmd[0] == "composer.bat" or \
                (current_cmd[0] == "composer" and platform.system() == "Windows" and "composer.bat" not in current_cmd[0]): # Check to avoid double logging if already .bat
                  logger.info(f"Python's current PATH for {current_cmd[0]} (from _execute_command): {os.environ.get('PATH')}")
