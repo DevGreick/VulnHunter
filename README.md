@@ -66,7 +66,7 @@ Here are common preparation steps for each ecosystem:
 
 1.  **Clone the Repository:**
     ```bash
-    git clone [https://github.com/DevGreick/VulnHunter](https://github.com/DevGreick/VulnHunter)
+    git clone https://github.com/DevGreick/VulnHunter
     cd VulnHunter
     ```
 
