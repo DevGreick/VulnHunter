@@ -1,8 +1,6 @@
-<<<<<<< HEAD
 requests==2.19.1
 flask==2.0.1
-=======
 flask==3.1.1
 requests==2.32.2
 django==4.2.21
->>>>>>> f974b67915d2818a8a5fe4d31bd2baaee323238e
+
