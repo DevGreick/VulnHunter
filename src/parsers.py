@@ -4,9 +4,9 @@ import json
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import List, Callable, Dict, Set, Tuple, Optional
-import subprocess  
-import os 
-import platform 
+import subprocess
+import os
+import platform
 
 try:
     from .models import Dependency
@@ -15,7 +15,6 @@ except ImportError:
 
 import logging
 logger = logging.getLogger("src.parsers")
-
 
 class DependencyParser:
 
@@ -30,10 +29,8 @@ class DependencyParser:
     def extract_dependencies(self) -> List[Dependency]:
         filename_original = self.file_path.name
         filename_lower = filename_original.lower()
-
         logger.debug(
             f"Attempting to parse file: {filename_original} (dispatching based on: {filename_lower})")
-
         parser_method = None
         lang_specific_transitive_parser = None
 
@@ -75,8 +72,7 @@ class DependencyParser:
     def _execute_command(self, cmd: List[str], cwd: Path) -> Optional[str]:
         current_cmd = list(cmd)
         try:
-            
-            if current_cmd[0] == "mvn": 
+            if current_cmd[0] == "mvn":
                 logger.warning(f"Original command for mvn: \"{' '.join(current_cmd)}\" in \"{cwd}\"")
                 logger.warning(f"Python's current PATH for mvn: {os.environ.get('PATH')}")
                 logger.warning(f"Python's current PATHEXT for mvn: {os.environ.get('PATHEXT')}")
@@ -84,9 +80,8 @@ class DependencyParser:
                     logger.warning("Detected Windows OS, attempting to use 'mvn.cmd'")
                     current_cmd[0] = "mvn.cmd"
             
-            
             if current_cmd[0] == "composer.bat" or \
-               (current_cmd[0] == "composer" and platform.system() == "Windows" and "composer.bat" not in current_cmd[0]): # Check to avoid double logging if already .bat
+               (current_cmd[0] == "composer" and platform.system() == "Windows" and "composer.bat" not in current_cmd[0]):
                  logger.info(f"Python's current PATH for {current_cmd[0]} (from _execute_command): {os.environ.get('PATH')}")
                  logger.info(f"Python's current PATHEXT for {current_cmd[0]} (from _execute_command): {os.environ.get('PATHEXT')}")
 
@@ -217,7 +212,6 @@ class DependencyParser:
             with open(self.file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 logger.debug(f"Data loaded from package.json: {data}") 
-
                 dep_sections = ["dependencies", "devDependencies",
                                 "peerDependencies", "optionalDependencies"]
                 for section in dep_sections:
@@ -246,7 +240,6 @@ class DependencyParser:
         except Exception as e:
             logger.error(
                 f"Error parsing {self.file_path.name}: {e}", exc_info=True)
-        
         logger.info(
             f"Successfully parsed {len(dependencies)} dependencies from {self.file_path.name}")
         return dependencies
@@ -479,7 +472,6 @@ class DependencyParser:
                                 version = version[:-2] + ".0" 
                             elif version.endswith("*"):
                                 version = version[:-1] + "0" 
-                            
                             if not version or not (re.match(r"^[0-9]", version) or re.match(r"^v[0-9]", version) or re.match(r"^[a-f0-9]{7,}$", version) or version.startswith("dev-")):
                                 logger.warning(
                                     f"composer.json: Skipping {name} from {section} due to complex/unresolvable version: '{version_ish}' -> '{version}'")
@@ -505,39 +497,27 @@ class DependencyParser:
         transitive_deps: List[Dependency] = []
         seen_dependencies: Set[Tuple[str, str]] = set(
             (dep.name.lower(), dep.version) for dep in direct_dependencies)
-
         logger.debug("ENTERING _get_transitive_php_dependencies") 
-
         logger.info(
             "Attempting to identify transitive PHP dependencies using 'composer show --tree'.")
-
         project_dir = self.file_path.parent
         current_cmd = ["composer", "show", "--tree"]
         if platform.system() == "Windows":
             logger.info("Detected Windows OS, attempting to use 'composer.bat' for PHP transitive dependencies.")
             current_cmd[0] = "composer.bat" 
-
         result = self._execute_command(current_cmd, project_dir)
-        
         logger.debug(f"Raw output from '{' '.join(current_cmd)}':\n{result if result else 'No output or command failed/returned None.'}")
-
         if result:
-            # Regex updated to correctly parse composer show --tree output for package lines
             dep_line_pattern = re.compile(r"^\s*([|`]\s*)*[+\-`|]?--\s*([a-zA-Z0-9\-_/.:]+)\s+([^(\s].*)")
-
             for line in result.splitlines():
                 match = dep_line_pattern.match(line) 
                 if match:
                     name = match.group(2) 
                     version_raw_full = match.group(3)
-
-                    # Skip platform requirements (php, ext-*)
                     if name.lower() == "php" or name.lower().startswith("ext-"):
                         logger.debug(f"Skipping platform requirement in tree: {name} {version_raw_full}")
                         continue
-
                     version_raw_part = version_raw_full.split(" ")[0]
-                    
                     version = re.sub(
                         r"^[<>=~^|@dev\s]*v?(?=[0-9])", "", version_raw_part)
                     version = version.split(",")[0] 
@@ -546,16 +526,13 @@ class DependencyParser:
                         version = version[:-2] + ".0" 
                     elif version.endswith("*"): 
                          version = version[:-1] + "0"
-                    
                     if name and version and \
                        (re.match(r"^[0-9]", version) or \
                         re.match(r"^v[0-9]", version) or \
                         re.match(r"^[a-f0-9]{7,}$", version) or \
                         version.startswith("dev-") ):
-                        
-                        if version.startswith("dev-") and "/" in version: # e.g. dev-main/foo -> dev-main
+                        if version.startswith("dev-") and "/" in version:
                             version = version.split("/")[0]
-
                         dep_tuple = (name.lower(), version)
                         if dep_tuple not in seen_dependencies:
                             transitive_deps.append(
@@ -569,7 +546,6 @@ class DependencyParser:
                         logger.debug(f"Could not reliably parse version for PHP dependency '{name}' from raw version string '{version_raw_full}'. Cleaned version attempt: '{version}'. Original line: {line}")
         else:
             logger.warning(f"Command '{' '.join(current_cmd)}' produced no output or _execute_command returned None (check previous logs for errors from _execute_command if any).")
-
         if transitive_deps:
             logger.info(
                 f"Identified {len(transitive_deps)} transitive PHP dependencies.")
@@ -728,9 +704,9 @@ class DependencyParser:
         seen_dependencies: Set[Tuple[str, str]] = set(
             (dep.name.lower(), dep.version) for dep in direct_dependencies)
         logger.info(
-            "Attempting to identify transitive Go dependencies using 'go mod graph' and 'go list -m all'.")
+            "Attempting to identify transitive Go dependencies using 'go list -m all'.")
         project_dir = self.file_path.parent
-        current_cmd = ["go", "list", "-m", "all"]
+        current_cmd = ["go", "list", "-m", "-mod=mod", "all"] # Added -mod=mod
         result_list_all = self._execute_command(current_cmd, project_dir)
         if result_list_all:
             for line in result_list_all.splitlines():
@@ -749,7 +725,7 @@ class DependencyParser:
                                 f"Added transitive Go dependency: {name}@{version}")
         else:
             logger.warning(
-                "Could not get Go module list. 'go list -m all' failed.")
+                "Could not get Go module list. 'go list -m -mod=mod all' failed.")
         if transitive_deps:
             logger.info(
                 f"Identified {len(transitive_deps)} transitive Go dependencies.")
