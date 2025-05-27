@@ -254,7 +254,7 @@ Like any vulnerability scanner, VulnHunter strives for high accuracy. However, r
 
 ## License
 
-This project is licensed under the MIT License - see the `LICENSE` file for details.
+This project is licensed under the MIT License, see the `LICENSE` file for details.
 
 ## Author
 
