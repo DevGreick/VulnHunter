@@ -261,3 +261,21 @@ This project is licensed under the MIT License, see the `LICENSE` file for detai
 Built by [DevGreick](https://github.com/DevGreick)
 
 *Cyber gunslinger style, because CVE hunting shouldn’t be boring.*
+
+<div align="right">
+  <table style="border: 0;">
+    <tr>
+      <td style="border: 0; padding-right: 10px;">
+        <span style="font-size: 16px; font-weight: 500; font-family: sans-serif; color: #c0caf5;">
+          Apoie meu trabalho
+        </span>
+      </td>
+      <td style="border: 0;">
+        <a href="https://buymeacoffee.com/devgreick" target="_blank">
+          <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" width="120">
+        </a>
+      </td>
+    </tr>
+  </table>
+</div>
+
