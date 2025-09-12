@@ -4,10 +4,15 @@ from pathlib import Path
 import logging
 from typing import List, Dict, Any, Tuple, Optional
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(name)s:%(lineno)d:%(message)s')
+# --- Configuração do Logging ---
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(name)s:%(lineno)d - %(message)s'
+)
 logger = logging.getLogger("convert_nvd")
 
 def extract_vendor_product_name(cpe_uri: str) -> Optional[str]:
+    """Extrai um nome canônico 'fornecedor:produto' de uma URI CPE 2.3."""
     try:
         parts = cpe_uri.split(":")
         if len(parts) >= 5:
@@ -15,150 +20,150 @@ def extract_vendor_product_name(cpe_uri: str) -> Optional[str]:
             product = parts[4].lower().replace('_', '-')
 
             if not vendor or vendor == '*':
-                 logger.debug(f"Skipping CPE with missing or placeholder vendor: {cpe_uri}")
-                 return None
+                return None
             if not product or product == '*':
-                  logger.debug(f"Skipping CPE with missing or placeholder product: {cpe_uri}")
-                  return None
+                return None
 
             return f"{vendor}:{product}"
     except Exception as e:
-        logger.error(f"Error splitting CPE URI '{cpe_uri}': {e}")
-
-    logger.debug(f"Could not extract vendor:product name from CPE URI: {cpe_uri}")
+        logger.warning(f"Erro ao processar a URI CPE '{cpe_uri}': {e}")
     return None
 
+
+def get_severity_from_metrics(metrics: Dict[str, Any]) -> str:
+    """Extrai a severidade do objeto de métricas, priorizando CVSS v3.1."""
+    if "cvssMetricV31" in metrics and metrics["cvssMetricV31"]:
+        return metrics["cvssMetricV31"][0].get("cvssData", {}).get("baseSeverity", "UNKNOWN")
+    if "cvssMetricV30" in metrics and metrics["cvssMetricV30"]:
+        return metrics["cvssMetricV30"][0].get("cvssData", {}).get("baseSeverity", "UNKNOWN")
+    if "cvssMetricV2" in metrics and metrics["cvssMetricV2"]:
+        return metrics["cvssMetricV2"][0].get("baseSeverity", "UNKNOWN")
+    return "UNKNOWN"
+
+
+def get_english_description(descriptions: List[Dict[str, str]]) -> str:
+    """Extrai a descrição em inglês de uma lista de descrições."""
+    for desc in descriptions:
+        if desc.get("lang") == "en":
+            return desc.get("value", "No description provided.")
+    return "No English description provided."
+
+
 def convert_nvd_to_minimal(input_file: str, output_file: str) -> None:
-    logger.info(f"Starting conversion of {input_file} to minimal format {output_file} using vendor:product names")
+    """
+    Converte o JSON bruto da API NVD 2.0 em um formato mínimo e otimizado.
+
+    O formato de saída agrupa as informações de vulnerabilidade por um par
+    (vendor:product, cve_id), consolidando todas as faixas de versão
+    vulneráveis para essa combinação.
+    """
+    logger.info(f"Iniciando conversão de {input_file} para o formato mínimo {output_file}")
 
     try:
         with open(input_file, "r", encoding="utf-8") as f:
             raw_data = json.load(f)
-        if "CVE_Items" not in raw_data or not isinstance(raw_data["CVE_Items"], list):
-             logger.error(f"Invalid format in {input_file}: 'CVE_Items' key missing or not a list.")
-             return
-        cve_items = raw_data["CVE_Items"]
+
+        if "vulnerabilities" not in raw_data or not isinstance(raw_data["vulnerabilities"], list):
+            logger.error(f"Formato inválido em {input_file}: chave 'vulnerabilities' não encontrada ou não é uma lista.")
+            return
+        cve_wrappers = raw_data["vulnerabilities"]
     except FileNotFoundError:
-        logger.error(f"Input NVD file not found: {input_file}")
+        logger.error(f"Arquivo de entrada NVD não encontrado: {input_file}")
         return
     except json.JSONDecodeError as e:
-        logger.error(f"Error decoding JSON from {input_file}: {e}")
+        logger.error(f"Erro ao decodificar JSON de {input_file}: {e}")
         return
     except Exception as e:
-        logger.error(f"Failed to load or pre-validate {input_file}: {e}", exc_info=True)
+        logger.error(f"Falha ao carregar ou pré-validar {input_file}: {e}", exc_info=True)
         return
 
+    # Dicionário para consolidar vulnerabilidades: (vendor:product, cve_id) -> dados_da_vuln
     vulns_dict: Dict[Tuple[str, str], Dict[str, Any]] = {}
-    processed_cve_items = 0
+    processed_cves = 0
 
-    for cve_item in cve_items:
-        processed_cve_items += 1
-        cve_id = None
+    for cve_wrapper in cve_wrappers:
         try:
-            cve_meta = cve_item.get("cve", {}).get("CVE_data_meta", {})
-            cve_id = cve_meta.get("ID")
-            if not cve_id:
-                logger.warning("Skipping CVE item with missing ID.")
+            cve = cve_wrapper.get("cve")
+            if not cve:
                 continue
 
-            severity = "UNKNOWN"
-            impact = cve_item.get("impact", {})
-            if "baseMetricV3" in impact and "cvssV3" in impact["baseMetricV3"]:
-                severity = impact["baseMetricV3"]["cvssV3"].get("baseSeverity", severity)
-            elif "baseMetricV2" in impact and "severity" in impact["baseMetricV2"]:
-                severity = impact["baseMetricV2"].get("severity", severity)
+            processed_cves += 1
+            cve_id = cve.get("id")
+            if not cve_id:
+                logger.warning("Pulando item de CVE sem ID.")
+                continue
 
-            description_data = cve_item.get("cve", {}).get("description", {}).get("description_data", [])
-            summary = ""
-            if description_data and isinstance(description_data, list) and description_data[0].get("lang") == "en":
-                summary = description_data[0].get("value", "No description provided.")
-            else:
-                summary = "No English description provided."
+            severity = get_severity_from_metrics(cve.get("metrics", {}))
+            summary = get_english_description(cve.get("descriptions", []))
+            configurations = cve.get("configurations", [])
 
-            configurations = cve_item.get("configurations", {})
-            nodes = configurations.get("nodes", [])
-            if not isinstance(nodes, list): nodes = []
+            for config in configurations:
+                nodes = config.get("nodes", [])
+                for node in nodes:
+                    cpe_matches = node.get("cpeMatch", [])
+                    for cpe_entry in cpe_matches:
+                        if not cpe_entry.get("vulnerable", True):
+                            continue
 
-            cve_has_relevant_range = False
+                        cpe_uri = cpe_entry.get("criteria")
+                        if not cpe_uri:
+                            continue
 
-            for node in nodes:
-                if not isinstance(node, dict): continue
+                        vendor_product_name = extract_vendor_product_name(cpe_uri)
+                        if not vendor_product_name:
+                            continue
 
-                cpe_matches = node.get("cpe_match", [])
-                if not isinstance(cpe_matches, list): cpe_matches = []
+                        # Extrai as faixas de versão da entrada CPE
+                        range_data = {}
+                        vsi = cpe_entry.get("versionStartIncluding")
+                        vse = cpe_entry.get("versionStartExcluding")
+                        vei = cpe_entry.get("versionEndIncluding")
+                        vee = cpe_entry.get("versionEndExcluding")
 
-                for cpe_entry in cpe_matches:
-                    if not isinstance(cpe_entry, dict): continue
-                    if not cpe_entry.get("vulnerable", True): continue
+                        if vsi: range_data["versionStartIncluding"] = vsi
+                        if vse: range_data["versionStartExcluding"] = vse
+                        if vei: range_data["versionEndIncluding"] = vei
+                        if vee: range_data["versionEndExcluding"] = vee
 
-                    cpe_uri = cpe_entry.get("cpe23Uri")
-                    if not cpe_uri: continue
+                        # Se não houver faixa, pode ser uma versão exata na URI CPE
+                        if not range_data:
+                            cpe_parts = cpe_uri.split(':')
+                            if len(cpe_parts) > 5 and cpe_parts[5] not in ('*', '-'):
+                                range_data["exactVersion"] = cpe_parts[5]
 
-                    vendor_product_name = extract_vendor_product_name(cpe_uri)
-                    if not vendor_product_name: continue
+                        if not range_data:
+                            continue
 
-                    vsi = cpe_entry.get("versionStartIncluding")
-                    vse = cpe_entry.get("versionStartExcluding")
-                    vei = cpe_entry.get("versionEndIncluding")
-                    vee = cpe_entry.get("versionEndExcluding")
+                        # Usa (vendor:product, cve_id) como chave para agrupar as faixas
+                        combo_key = (vendor_product_name, cve_id)
 
-                    range_data = {}
-                    if vsi: range_data["versionStartIncluding"] = vsi
-                    if vse: range_data["versionStartExcluding"] = vse
-                    if vei: range_data["versionEndIncluding"] = vei
-                    if vee: range_data["versionEndExcluding"] = vee
+                        if combo_key not in vulns_dict:
+                            vulns_dict[combo_key] = {
+                                "name": vendor_product_name,
+                                "cve_id": cve_id,
+                                "severity": severity.upper(),
+                                "summary": summary.strip(),
+                                "vulnerable_versions": [range_data]
+                            }
+                        else:
+                            # Adiciona uma nova faixa de versão se ela ainda não existir
+                            if range_data not in vulns_dict[combo_key]["vulnerable_versions"]:
+                                vulns_dict[combo_key]["vulnerable_versions"].append(range_data)
 
-                    if not range_data:
-                        cpe_parts = cpe_uri.split(':')
-                        exact_ver = None
-                        if len(cpe_parts) > 5 and cpe_parts[5] not in ('*', '-'):
-                             exact_ver = cpe_parts[5]
-                             if len(cpe_parts) > 6 and cpe_parts[6] not in ('*', '-'):
-                                exact_ver += f":{cpe_parts[6]}"
-                        if exact_ver:
-                            range_data["exactVersion"] = exact_ver
-                            logger.debug(f"Using exact version '{exact_ver}' from CPE URI {cpe_uri}")
-
-                    if not range_data: continue
-
-                    cve_has_relevant_range = True
-
-                    combo_key = (vendor_product_name, cve_id)
-
-                    if combo_key not in vulns_dict:
-                        vulns_dict[combo_key] = {
-                            "name": vendor_product_name, 
-                            "cve_id": cve_id,
-                            "severity": severity.upper(),
-                            "summary": summary.strip(),
-                            "vulnerable_versions": [range_data]
-                        }
-                        logger.debug(f"Added new entry for {combo_key} with range: {range_data}")
-                    else:
-                        if range_data not in vulns_dict[combo_key]["vulnerable_versions"]:
-                             vulns_dict[combo_key]["vulnerable_versions"].append(range_data)
-                             logger.debug(f"Appended range {range_data} to existing entry for {combo_key}")
-
-            if nodes and not cve_has_relevant_range:
-                logger.debug(f"No applicable version ranges/CPEs found for {cve_id} despite configuration nodes present.")
-
-        except KeyError as e:
-             cve_ref = cve_id if cve_id else "UNKNOWN"
-             logger.warning(f"Skipping CVE item '{cve_ref}' due to missing key: {e}.")
         except Exception as e:
-            cve_ref = cve_id if cve_id else "UNKNOWN"
-            logger.error(f"Unexpected error processing CVE item '{cve_ref}': {e}", exc_info=True)
+            cve_ref = cve.get("id", "ID DESCONHECIDO")
+            logger.error(f"Erro inesperado ao processar o item CVE '{cve_ref}': {e}", exc_info=True)
 
-    logger.info(f"Finished processing {processed_cve_items} CVE items from NVD.")
+    logger.info(f"Processamento de {processed_cves} CVEs da API NVD concluído.")
 
     minimal_vulns = list(vulns_dict.values())
-    logger.info(f"Consolidated into {len(minimal_vulns)} unique vulnerability entries (vendor:product/CVE pairs).")
+    logger.info(f"Dados consolidados em {len(minimal_vulns)} entradas de vulnerabilidade únicas (par vendor:product/CVE).")
 
     output_path = Path(output_file)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     try:
         with open(output_path, "w", encoding="utf-8") as out_f:
             json.dump(minimal_vulns, out_f, indent=2, ensure_ascii=False)
-        logger.info(f"Successfully generated detailed NVD file: {output_path}")
+        logger.info(f"Arquivo NVD otimizado gerado com sucesso: {output_path}")
     except Exception as e:
-        logger.error(f"Failed to write output file {output_path}: {e}", exc_info=True)
+        logger.error(f"Falha ao escrever o arquivo de saída {output_path}: {e}", exc_info=True)

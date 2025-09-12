@@ -1,28 +1,31 @@
 # scan.py
 import argparse
 import logging
-import json
 import re
 from pathlib import Path
 from typing import List, Any, Dict, Tuple, Set
 from collections import defaultdict
 import sys
 
+# Garante que os módulos em 'src' e 'scripts' possam ser importados
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 try:
     from scripts.update_nvd import main as update_nvd_main
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
     update_nvd_main = None
-except ImportError:
-    update_nvd_main = None
+    # Este log só aparecerá se --update-nvd for usado e a importação falhar.
+    logging.getLogger("scan").debug("Não foi possível importar a função de atualização da NVD.")
 
 from src.parsers import get_parser_for_file
 from src.analyzer import VulnerabilityAnalyzer
 from src.models import Dependency, Vulnerability
 from src.report_generator import generate_json_report
 
+# Configuração do Logging
 root_logger = logging.getLogger()
 console_handler = logging.StreamHandler(sys.stderr)
-formatter = logging.Formatter('%(levelname)s:%(name)s:%(lineno)d:%(message)s')
+formatter = logging.Formatter('%(levelname)s:%(name)s:%(message)s')
 console_handler.setFormatter(formatter)
 if not root_logger.hasHandlers():
     root_logger.addHandler(console_handler)
@@ -30,364 +33,181 @@ if not root_logger.hasHandlers():
 logger = logging.getLogger("scan")
 
 SEVERITY_ORDER = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "UNKNOWN"]
+SUPPORTED_FILES = [
+    "requirements.txt", "package.json", "pom.xml", 
+    "composer.json", "gemfile.lock", "go.mod"
+]
 
 def detect_language(file_path: Path) -> str:
+    """Detecta a linguagem de programação com base no nome do arquivo de dependência."""
     name_lower = file_path.name.lower()
-    if name_lower == "requirements.txt":
-        return "python"
-    elif name_lower == "package.json":
-        return "javascript"
-    elif name_lower == "composer.json":
-        return "php"
-    elif name_lower == "gemfile.lock":
-        return "ruby"
-    elif name_lower == "pom.xml":
-        return "java"
-    elif name_lower == "go.mod":
-        return "go"
-    logger.debug(f"Detecting language for {file_path.name}: unknown (filename checked: {name_lower})")
-    return "unknown"
+    lang_map = {
+        "requirements.txt": "python",
+        "package.json": "javascript",
+        "composer.json": "php",
+        "gemfile.lock": "ruby",
+        "pom.xml": "java",
+        "go.mod": "go"
+    }
+    return lang_map.get(name_lower, "unknown")
 
 def find_dependency_files(input_paths: List[Path]) -> Dict[str, List[Path]]:
+    """Busca recursivamente por arquivos de dependência suportados."""
     dependency_files: Dict[str, List[Path]] = defaultdict(list)
-    processed_paths = set()
-    paths_to_scan = list(input_paths)
-    idx = 0
-    while idx < len(paths_to_scan):
-        current_path = paths_to_scan[idx].resolve()
-        idx += 1
-        if current_path in processed_paths:
-            continue
-        processed_paths.add(current_path)
-        if not current_path.exists():
-            logger.warning(f"Path does not exist during discovery: {current_path}")
-            continue
-        if current_path.is_file():
-            lang = detect_language(current_path)
-            if lang != "unknown":
-                logger.debug(f"Found {lang} dependency file: {current_path}")
-                dependency_files[lang].append(current_path)
-            else:
-                logger.debug(f"Skipping unrecognized file during discovery: {current_path}")
-        elif current_path.is_dir():
-            logger.debug(f"Scanning directory for dependency files: {current_path}")
-            try:
-                for item in current_path.iterdir():
-                    if item.resolve() not in processed_paths:
-                        paths_to_scan.append(item)
-            except PermissionError:
-                logger.warning(f"Permission denied while trying to scan directory: {current_path}")
-            except Exception as e:
-                logger.error(f"Error scanning directory {current_path}: {e}", exc_info=True)
+    for path in input_paths:
+        if path.is_file() and path.name.lower() in SUPPORTED_FILES:
+            lang = detect_language(path)
+            dependency_files[lang].append(path)
+        elif path.is_dir():
+            for supported_file in SUPPORTED_FILES:
+                for found_file in path.rglob(supported_file):
+                    lang = detect_language(found_file)
+                    dependency_files[lang].append(found_file)
     return dependency_files
 
-def print_formatted_vulnerability_report(enriched_vulnerabilities: List[Dict[str, Any]], total_ignored: int):
-    report_data: Dict[str, Dict[str, List[Dict[str, Any]]]] = defaultdict(lambda: defaultdict(list))
-    for vuln_data in enriched_vulnerabilities:
-        lang = vuln_data["language"]
-        lib_id = f"{vuln_data['name']}@{vuln_data['version']}"
-        report_data[lang][lib_id].append({
-            "cve_id": vuln_data["cve_id"],
-            "severity": vuln_data["severity"].upper(),
-            "summary": vuln_data["summary"]
-        })
-    total_vulns_reported = len(enriched_vulnerabilities)
-    global_severity_counts = defaultdict(int)
-    for vuln_data in enriched_vulnerabilities:
-        global_severity_counts[vuln_data["severity"].upper()] += 1
+def print_formatted_vulnerability_report(enriched_vulns: List[Dict[str, Any]], total_ignored: int):
+    """Imprime o relatório de vulnerabilidades formatado no console."""
+    if not enriched_vulns:
+        print("\n--- Sumário de Vulnerabilidades ---")
+        print("✅ Nenhuma vulnerabilidade encontrada.")
+        if total_ignored > 0:
+            print(f"   ({total_ignored} vulnerabilidades foram ignoradas via .vulnignore)")
+        print("-----------------------------------\n")
+        return
 
-    print("\n--- Vulnerability Summary (Overall) ---")
-    if total_vulns_reported == 0:
-        print("Total potential unique vulnerabilities found: 0")
-    else:
-        print(f"Total potential unique vulnerabilities found: {total_vulns_reported}")
+    report_data = defaultdict(lambda: defaultdict(list))
+    severity_counts = defaultdict(int)
+    for vuln in enriched_vulns:
+        lang = vuln["language"]
+        lib_id = f"{vuln['name']}@{vuln['version']}"
+        report_data[lang][lib_id].append(vuln)
+        severity_counts[vuln["severity"].upper()] += 1
+
+    print("\n--- Sumário de Vulnerabilidades ---")
+    print(f"Total de vulnerabilidades encontradas: {len(enriched_vulns)}")
     if total_ignored > 0:
-             print(f"Additionally, {total_ignored} vulnerabilities were ignored based on '.vulnignore'.")
-    print("\nBy Severity (Reported):")
-    has_severities_printed = False
+        print(f"Vulnerabilidades ignoradas: {total_ignored}")
+    
     for sev in SEVERITY_ORDER:
-        if global_severity_counts[sev] > 0:
-            print(f"  {sev}: {global_severity_counts[sev]}")
-            has_severities_printed = True
-    if not has_severities_printed and total_vulns_reported > 0:
-        other_severities_found = False
-        for sev, count in global_severity_counts.items():
-            if sev not in SEVERITY_ORDER and count > 0:
-                if not other_severities_found:
-                    other_severities_found = True
-                print(f"  {sev}: {count}")
-                has_severities_printed = True
-    if not has_severities_printed:
-        print("  No vulnerabilities found.")
-    print("\n--- Vulnerabilities Details by Language (Reported) ---")
-    if not report_data:
-        print("  No vulnerabilities found to detail.")
-    sorted_languages = sorted(report_data.keys(), key=lambda x: x.lower())
-    for lang in sorted_languages:
-        print(f"\n\n## Language: {lang.upper()}")
-        lang_vulns_by_lib = report_data[lang]
-        sorted_libs = sorted(lang_vulns_by_lib.keys(), key=lambda x: x.lower())
-        for lib_id in sorted_libs:
-            print(f"\n  ### Library: {lib_id}")
-            cves_for_lib = lang_vulns_by_lib[lib_id]
-            cves_by_severity: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
-            for cve_info in cves_for_lib:
-                cves_by_severity[cve_info["severity"]].append(cve_info)
-            found_any_cve_for_this_lib = False
+        if sev in severity_counts:
+            print(f"  [{sev}]: {severity_counts[sev]}")
+    
+    print("\n--- Detalhes por Linguagem ---")
+    for lang, libs in sorted(report_data.items()):
+        print(f"\n## Linguagem: {lang.upper()}")
+        for lib_id, vulns in sorted(libs.items()):
+            print(f"  ### Biblioteca: {lib_id}")
             for sev in SEVERITY_ORDER:
-                if cves_by_severity[sev]:
-                    found_any_cve_for_this_lib = True
-                    print(f"    Severity: {sev}")
-                    for cve_detail in sorted(cves_by_severity[sev], key=lambda x: x['cve_id']):
-                        print(f"      - {cve_detail['cve_id']}")
-            other_severities_exist_for_lib = False
-            for sev_key in cves_by_severity.keys():
-                if sev_key not in SEVERITY_ORDER:
-                    other_severities_exist_for_lib = True
-                    break
-            if other_severities_exist_for_lib:
-                if found_any_cve_for_this_lib : print("    Other Severities:")
-                else: print("    Severities (not in standard order):")
-                for sev_key, cve_list in sorted(cves_by_severity.items()):
-                    if sev_key not in SEVERITY_ORDER:
-                         found_any_cve_for_this_lib = True
-                         print(f"    Severity: {sev_key}")
-                         for cve_detail in sorted(cve_list, key=lambda x: x['cve_id']):
-                            print(f"      - {cve_detail['cve_id']}")
-            if not found_any_cve_for_this_lib and cves_for_lib:
-                 logger.error(f"Internal inconsistency: CVEs present for {lib_id} but not printed in detail.")
-    print("\n-----------------------------------------\n")
+                sev_vulns = [v for v in vulns if v["severity"].upper() == sev]
+                if sev_vulns:
+                    print(f"    - Severidade: {sev}")
+                    for v in sorted(sev_vulns, key=lambda x: x['cve_id']):
+                        print(f"      - {v['cve_id']}")
+    print("\n-----------------------------------\n")
+
 
 def load_ignore_rules(ignore_file_path: Path) -> Tuple[Set[str], Dict[str, Set[str]]]:
-    ignored_cves_global: Set[str] = set()
-    ignored_cves_package: Dict[str, Set[str]] = defaultdict(set)
-    ignored_rules_count = 0
-    if ignore_file_path.is_file():
-        logger.info(f"Loading ignore rules from: {ignore_file_path}")
-        try:
-            with open(ignore_file_path, "r", encoding="utf-8") as f:
-                for line_num, line in enumerate(f, 1):
-                    stripped_line = line.strip()
-                    if not stripped_line or stripped_line.startswith("#"):
-                        continue
-                    rule_part = stripped_line.split("#", 1)[0].strip()
-                    parts = rule_part.split()
-                    if not parts: continue
-                    cve_id_lower = parts[0].lower()
-                    if not re.match(r"cve-\d{4}-\d{4,}", cve_id_lower):
-                         logger.warning(f"Skipping invalid CVE format in {ignore_file_path.name} line {line_num}: '{parts[0]}'")
-                         continue
-                    if len(parts) == 1:
-                        ignored_cves_global.add(cve_id_lower)
-                        ignored_rules_count += 1
-                        logger.debug(f"Ignore rule added (global): {cve_id_lower}")
-                    elif len(parts) >= 2:
-                        package_name_lower = parts[1].lower()
-                        ignored_cves_package[package_name_lower].add(cve_id_lower)
-                        ignored_rules_count += 1
-                        logger.debug(f"Ignore rule added (package: {package_name_lower}): {cve_id_lower}")
-            if ignored_rules_count > 0:
-                logger.info(f"Loaded {ignored_rules_count} ignore rules.")
-            else:
-                logger.info(f"Ignore file {ignore_file_path.name} loaded but contains no valid rules.")
-        except Exception as e:
-            logger.error(f"Error reading or parsing {ignore_file_path.name}: {e}", exc_info=True)
-    else:
-        logger.info(f"No ignore file found at {ignore_file_path}. Processing all findings.")
+    """Carrega as regras de CVEs a serem ignoradas do arquivo .vulnignore."""
+    ignored_cves_global, ignored_cves_package = set(), defaultdict(set)
+    if not ignore_file_path.is_file():
+        logger.info(f"Arquivo .vulnignore não encontrado em {ignore_file_path}, nenhuma vulnerabilidade será ignorada.")
+        return ignored_cves_global, ignored_cves_package
+
+    logger.info(f"Carregando regras de exclusão de: {ignore_file_path}")
+    with open(ignore_file_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip().split("#")[0]
+            if not line:
+                continue
+            parts = line.split()
+            cve_id = parts[0].lower()
+            if re.match(r"cve-\d{4}-\d{4,}", cve_id):
+                if len(parts) == 1:
+                    ignored_cves_global.add(cve_id)
+                elif len(parts) >= 2:
+                    package_name = parts[1].lower()
+                    ignored_cves_package[package_name].add(cve_id)
+    logger.info(f"Carregadas {len(ignored_cves_global)} regras globais e {len(ignored_cves_package)} pacotes com regras específicas.")
     return ignored_cves_global, ignored_cves_package
 
 def main():
     parser = argparse.ArgumentParser(
         description="Scans project dependency files for known vulnerabilities using local NVD data.",
-        epilog=(
-            "Usage Examples:\n"
-            "  python3 -m scan --dir path/to/your/project\n"
-            "  python3 -m scan --dir ./req.txt ./proj/pom.xml\n"
-            "  python3 -m scan --update-nvd\n"
-            "  python3 -m scan --dir . --update-nvd\n"
-            "\n"
-            "Supported dependency files:\n"
-            "  requirements.txt (Python), package.json (JavaScript), pom.xml (Java),\n"
-            "  composer.json (PHP), Gemfile.lock (Ruby), go.mod (Go)\n"
-            "\n"
-            "Ignoring Vulnerabilities:\n"
-            "  Create a file named '.vulnignore' in the current directory.\n"
-            "  Each line can ignore a CVE globally or for a specific package:\n"
-            "    CVE-YYYY-XXXXX\n"
-            "    CVE-YYYY-ZZZZZ package-name\n"
-        ),
         formatter_class=argparse.RawTextHelpFormatter
     )
-    scan_options = parser.add_argument_group('Scan Options')
-    scan_options.add_argument("--dir",type=Path,nargs="+",metavar="PATH",
-        help="One or more project directories or specific dependency files to scan.")
-    scan_options.add_argument("--update-nvd",action="store_true",
-        help="Force an update of local NVD and CPE data.")
-    data_options = parser.add_argument_group('Data Path Options')
-    data_options.add_argument("--nvd",type=Path,default=Path("data/nvd_cve_rebuilt.json"),metavar="FILE_PATH",
-        help="Path to the preprocessed NVD JSON data file.")
-    data_options.add_argument("--cpe-index",type=Path,default=Path("data/cpe/cpe_alias_index.json"),metavar="FILE_PATH",
-        help="Path to the CPE alias index JSON file.")
-    general_options = parser.add_argument_group('General Options')
-    general_options.add_argument("--log-level",default="INFO",choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        help="Set the logging level.")
-    general_options.add_argument("--ignore-file",type=Path,default=Path(".vulnignore"),metavar="FILE_PATH",
-        help="Path to the ignore file.")
+    parser.add_argument("--dir", type=Path, nargs="+", metavar="PATH", help="Um ou mais diretórios ou arquivos para escanear.")
+    parser.add_argument("--update-nvd", action="store_true", help="Força a atualização dos dados locais da NVD e CPE.")
+    parser.add_argument("--nvd", type=Path, default=Path("data/nvd_cve_rebuilt.json"), help="Caminho para o arquivo de dados NVD processado.")
+    parser.add_argument("--cpe-index", type=Path, default=Path("data/cpe/cpe_alias_index.json"), help="Caminho para o índice de alias CPE.")
+    parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], help="Define o nível do log.")
+    parser.add_argument("--ignore-file", type=Path, default=Path(".vulnignore"), help="Caminho para o arquivo de exclusão de CVEs.")
 
     args = parser.parse_args()
-
-    log_level_numeric = logging.INFO
-    try:
-        log_level_name = args.log_level.upper()
-        numeric_candidate = logging.getLevelName(log_level_name)
-        if isinstance(numeric_candidate, int) and numeric_candidate != 0:
-            log_level_numeric = numeric_candidate
-        elif isinstance(numeric_candidate, int) and numeric_candidate == 0 and log_level_name != "NOTSET":
-             log_level_numeric = logging.INFO
-        elif not isinstance(numeric_candidate, int):
-            log_level_numeric = logging.INFO
-    except Exception:
-        log_level_numeric = logging.INFO
-
+    log_level_numeric = logging.getLevelName(args.log_level.upper())
     root_logger.setLevel(log_level_numeric)
-    console_handler.setLevel(log_level_numeric)
 
-    logger.setLevel(log_level_numeric)
+    if not args.update_nvd and not args.dir:
+        parser.error("Nenhuma ação especificada. Use --update-nvd ou --dir.")
 
-    parsers_logger = logging.getLogger("src.parsers")
-    parsers_logger.setLevel(log_level_numeric)
-
-    analyzer_module_logger = logging.getLogger("analyzer")
-    analyzer_module_logger.setLevel(log_level_numeric)
-
-    update_nvd_performed_and_was_sole_action = False
     if args.update_nvd:
-        logger.info("NVD update requested.")
         if update_nvd_main:
-            try:
-                logger.info("Attempting to run NVD update script...")
-                update_nvd_main()
-                logger.info("NVD update process completed.")
-                if not args.dir:
-                    update_nvd_performed_and_was_sole_action = True
-            except Exception as e:
-                logger.error(f"Error during NVD update: {e}.", exc_info=True)
-                if not args.dir: return
+            logger.info("Iniciando atualização da base de dados NVD...")
+            update_nvd_main()
+            logger.info("Processo de atualização da NVD concluído.")
         else:
-            logger.error("NVD update functionality not available (update_nvd_main not imported).")
-            if not args.dir: return
-    if update_nvd_performed_and_was_sole_action:
-        logger.info("NVD update was the only action requested and has completed. Exiting.")
-        return
-    if not args.dir:
-        logger.info("\nNo input directory/file provided for scanning. Please specify with --dir.")
-        logger.info("Use --help for more information on command-line options.")
-        return
-    valid_input_paths = []
+            logger.error("Funcionalidade de atualização da NVD não está disponível (importação falhou).")
+        if not args.dir:
+            return
+
     if args.dir:
-        for p_str in args.dir:
-            p = Path(p_str)
-            if p.exists():
-                valid_input_paths.append(p)
-            else:
-                logger.error(f"Input path does not exist and will be skipped: {p}")
-    if not valid_input_paths:
-        logger.error("No valid (existing) input files or directories were provided for scanning.")
-        return
-    if not args.nvd.is_file():
-        logger.error(f"NVD database file not found or is not a file: {args.nvd}. "
-                     "Please run with --update-nvd or ensure the path is correct.")
-        return
-    cpe_index_to_use = None
-    if args.cpe_index.is_file():
-        cpe_index_to_use = str(args.cpe_index)
-    else:
-        logger.warning(f"CPE index file not found or is not a file at {args.cpe_index}. "
-                       "Analysis will proceed, but CPE alias matching might be less effective.")
+        if not args.nvd.is_file():
+            logger.error(f"Base de dados NVD não encontrada em: {args.nvd}. Execute com --update-nvd.")
+            return
+        
+        cpe_index_path = str(args.cpe_index) if args.cpe_index.is_file() else None
 
-    logger.info(f"Initializing VulnerabilityAnalyzer with NVD path: {args.nvd} and CPE index: {cpe_index_to_use if cpe_index_to_use else 'Not provided/found'}")
-    analyzer = VulnerabilityAnalyzer(str(args.nvd), cpe_index_to_use, effective_log_level=log_level_numeric)
+        all_deps = set()
+        dep_to_lang_map = {}
+        
+        discovered_files = find_dependency_files(args.dir)
+        if not discovered_files:
+            logger.warning("Nenhum arquivo de dependência suportado encontrado.")
+            return
 
-    ignored_cves_global, ignored_cves_package = load_ignore_rules(args.ignore_file)
-    all_dependencies: List[Dependency] = []
-    dependency_name_to_language: Dict[str, str] = {}
-    logger.info("Finding dependency files...")
-    discovered_files_by_lang = find_dependency_files(valid_input_paths)
-    if not discovered_files_by_lang:
-        logger.warning("No dependency files found in the provided input paths for any known language.")
-        print_formatted_vulnerability_report([], 0)
-        empty_report_path = Path("reports/report.json")
-        empty_report_path.parent.mkdir(parents=True, exist_ok=True)
-        generate_json_report([], empty_report_path)
-        logger.info(f"Empty report generated at: {empty_report_path}")
-        return
+        for lang, files in discovered_files.items():
+            for file_path in files:
+                logger.info(f"Analisando {file_path} ({lang})...")
+                parser_func = get_parser_for_file(str(file_path))
+                deps = parser_func(str(file_path))
+                for dep in deps:
+                    all_deps.add(dep)
+                    dep_to_lang_map[dep.name.lower()] = lang
+        
+        analyzer = VulnerabilityAnalyzer(str(args.nvd), cpe_index_path, effective_log_level=log_level_numeric)
+        raw_vulns = analyzer.analyze_by_cpe(list(all_deps))
 
-    logger.info("Parsing dependency files...")
-    total_parsed_dep_count = 0
-    for lang, files in discovered_files_by_lang.items():
-        logger.info(f"Parsing {lang} files: {[str(f) for f in files]}")
-        lang_dep_count_for_log = 0
-        for file_path in files:
-            try:
-                parser_callable = get_parser_for_file(str(file_path))
-                parsed_deps: List[Dependency] = parser_callable(str(file_path))
-                if parsed_deps:
-                    logger.info(f"Successfully parsed {len(parsed_deps)} dependencies from {file_path.name} for language {lang}")
-                    for dep in parsed_deps:
-                        dependency_name_to_language[dep.name.lower()] = lang
-                    all_dependencies.extend(parsed_deps)
-                    lang_dep_count_for_log += len(parsed_deps)
-            except Exception as e:
-                logger.error(f"Failed to parse {file_path} for language {lang}: {e}", exc_info=True)
-        if lang_dep_count_for_log > 0 or len(files) > 0 :
-            logger.info(f"Successfully parsed {lang_dep_count_for_log} total dependencies from {len(files)} {lang} file(s)")
-        total_parsed_dep_count += lang_dep_count_for_log
-    if not all_dependencies:
-        logger.warning("No dependencies were successfully parsed from any file.")
-        print_formatted_vulnerability_report([], 0)
-        empty_report_path = Path("reports/report.json")
-        empty_report_path.parent.mkdir(parents=True, exist_ok=True)
-        generate_json_report([], empty_report_path)
-        logger.info(f"Empty report generated at: {empty_report_path}")
-        return
+        ignored_global, ignored_package = load_ignore_rules(args.ignore_file)
+        
+        final_vulns, enriched_vulns = [], []
+        ignored_count = 0
 
-    logger.info(f"Analyzing {len(all_dependencies)} total dependency entries...")
-    analyzer_results: List[Vulnerability] = analyzer.analyze_by_cpe(all_dependencies)
-    logger.info(f"Analysis complete. Analyzer returned {len(analyzer_results)} raw vulnerability entries.")
-    filtered_results: List[Vulnerability] = []
-    ignored_count = 0
-    for vuln in analyzer_results:
-        vuln_cve_lower = vuln.cve_id.lower()
-        vuln_name_lower = vuln.name.lower()
-        is_ignored = False
-        if vuln_cve_lower in ignored_cves_global:
-            is_ignored = True
-            logger.debug(f"Ignoring {vuln.cve_id} for {vuln.name} (global rule)")
-        elif vuln_name_lower in ignored_cves_package and vuln_cve_lower in ignored_cves_package[vuln_name_lower]:
-             is_ignored = True
-             logger.debug(f"Ignoring {vuln.cve_id} for {vuln.name} (package rule)")
-        if not is_ignored:
-            filtered_results.append(vuln)
-        else:
-            ignored_count += 1
-    if ignored_count > 0:
-        logger.info(f"Ignored {ignored_count} vulnerabilities based on rules in {args.ignore_file.name}.")
-    enriched_results_for_console_report: List[Dict[str, Any]] = []
-    for vuln in filtered_results:
-        lang_for_vuln = dependency_name_to_language.get(vuln.name.lower(), "unknown")
-        enriched_results_for_console_report.append({
-            "name": vuln.name,
-            "version": vuln.version,
-            "cve_id": vuln.cve_id,
-            "severity": vuln.severity,
-            "summary": vuln.summary,
-            "language": lang_for_vuln
-        })
-    print_formatted_vulnerability_report(enriched_results_for_console_report, ignored_count)
-    output_report_path = Path("reports/report.json")
-    output_report_path.parent.mkdir(parents=True, exist_ok=True)
-    generate_json_report(filtered_results, output_report_path)
-    logger.info(f"Report successfully generated at: {output_report_path}")
+        for vuln in raw_vulns:
+            cve_lower = vuln.cve_id.lower()
+            pkg_lower = vuln.name.lower()
+            if cve_lower in ignored_global or cve_lower in ignored_package.get(pkg_lower, set()):
+                ignored_count += 1
+                continue
+            
+            final_vulns.append(vuln)
+            lang = dep_to_lang_map.get(pkg_lower, "unknown")
+            enriched_vulns.append({**vuln.dict(), "language": lang})
+
+        print_formatted_vulnerability_report(enriched_vulns, ignored_count)
+
+        report_path = Path("reports/report.json")
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        generate_json_report(final_vulns, report_path)
+        logger.info(f"Relatório JSON gerado em: {report_path}")
 
 if __name__ == "__main__":
     main()

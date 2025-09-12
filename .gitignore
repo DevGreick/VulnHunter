@@ -27,15 +27,11 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-
-*.manifest
-*.spec
-
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
 
-
+# Testing
 htmlcov/
 .tox/
 .nox/
@@ -58,33 +54,18 @@ ENV/
 env.bak/
 venv.bak/
 
-# Spyder project settings
+# IDE settings
 .spyderproject
 .spyproject
-
-# Rope project settings
 .ropeproject
-
-# MkDocs documentation
-/site
-
-# Jupyter Notebook
 .ipynb_checkpoints
-
-# VS Code
 .vscode/
-
-# PyCharm
 .idea/
 
 # Mac
 .DS_Store
 
-# NVD Data File (Large, should not be versioned)
-data/nvd_cve.json
-data/nvd_cve.json.gz
+# --- Regras para o VulnHunter ---
 
-# Reports
-reports/*.json"data/cpe/cpe_alias_index.json" 
-"data/cpe/official-cpe-dictionary_v2.3.xml" 
-"data/nvd_cve_rebuilt.json" 
+data/
+reports/

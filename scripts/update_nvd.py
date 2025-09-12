@@ -1,32 +1,125 @@
 # scripts/update_nvd.py
-import argparse
 import os
-import gzip
-import shutil
 import json
-from datetime import datetime
-from pathlib import Path
+import time
+import zipfile
 import logging
-import requests
-import xml.etree.ElementTree as ET
-from typing import List, Dict, Any, Set, Optional, Tuple
+from pathlib import Path
+from datetime import datetime
+from typing import List, Dict, Any, Set, Optional
 from collections import defaultdict
-import zipfile 
+import requests
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(name)s:%(lineno)d:%(message)s')
+# --- Configuração do Logging ---
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(name)s:%(lineno)d - %(message)s'
+)
 logger = logging.getLogger("update_nvd")
 
+# --- Constantes e Configuração de Paths ---
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
-NVD_FEED_DIR = DATA_DIR / "nvd_feeds"
-MERGED_NVD_JSON = DATA_DIR / "nvd_cve.json"
+NVD_FEEDS_DIR = DATA_DIR / "nvd_feeds"
+RAW_NVD_JSON = DATA_DIR / "nvd_raw_merged.json"
 REBUILT_NVD_JSON = DATA_DIR / "nvd_cve_rebuilt.json"
+CPE_ALIAS_INDEX_JSON = DATA_DIR / "cpe_alias_index.json"
 
-CPE_DIR = DATA_DIR / "cpe"
-CPE_ZIP_NAME = "official-cpe-dictionary_v2.3.xml.zip"
-CPE_XML_NAME = "official-cpe-dictionary_v2.3.xml"
-CPE_ALIAS_INDEX_JSON = CPE_DIR / "cpe_alias_index.json"
+# --- URLs e Configurações ---
+NVD_CVE_FEEDS_BASE_URL = "https://nvd.nist.gov/feeds/json/cve/2.0/"
+NVD_CPE_API_BASE_URL = "https://services.nvd.nist.gov/rest/json/cpes/2.0/"
+NVD_API_KEY = os.environ.get("NVD_API_KEY")
+REQUEST_DELAY_SECONDS = 6 if not NVD_API_KEY else 0.6
+CPE_API_RESULTS_PER_PAGE = 10000 # Máximo permitido pela API de CPEs
 
+try:
+    from .convert_nvd import convert_nvd_to_minimal
+except ImportError:
+    logger.critical("Falha na importação de '.convert_nvd'. A conversão dos dados da NVD falhará.")
+    convert_nvd_to_minimal = None
+
+# --- Funções Utilitárias ---
+def download_file(url: str, dest_path: Path, session: requests.Session) -> bool:
+    logger.info(f"Baixando: {url}")
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        response = session.get(url, stream=True, timeout=180, headers=headers)
+        response.raise_for_status()
+        with open(dest_path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        logger.info(f"Download bem-sucedido: {dest_path.name}")
+        return True
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Falha ao baixar {url}: {e}")
+    return False
+
+def extract_zip(zip_path: Path, output_dir: Path) -> Optional[Path]:
+    logger.info(f"Extraindo {zip_path.name}...")
+    try:
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            extracted_files = zip_ref.namelist()
+            zip_ref.extractall(output_dir)
+            if extracted_files:
+                logger.info("Extração bem-sucedida.")
+                return output_dir / extracted_files[0]
+    except Exception as e:
+        logger.error(f"Falha ao extrair {zip_path.name}: {e}")
+    return None
+
+# --- Lógica de Coleta de CVEs via Data Feeds ---
+def merge_json_files(json_files: List[Path], output_file: Path):
+    logger.info(f"Unificando {len(json_files)} arquivos JSON de CVEs...")
+    all_vulnerabilities = []
+    for json_file in json_files:
+        try:
+            with open(json_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                vulnerabilities = data.get("vulnerabilities", [])
+                all_vulnerabilities.extend(vulnerabilities)
+        except Exception as e:
+            logger.error(f"Erro ao processar o arquivo {json_file}: {e}")
+        finally:
+            try: json_file.unlink()
+            except OSError: pass
+    
+    output_data = {"vulnerabilities": all_vulnerabilities}
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(output_data, f)
+    logger.info(f"Unificação de CVEs concluída. Total de {len(all_vulnerabilities)} vulnerabilidades.")
+
+def update_cves_from_data_feeds() -> bool:
+    NVD_FEEDS_DIR.mkdir(parents=True, exist_ok=True)
+    session = requests.Session()
+    
+    current_year = datetime.now().year
+    files_to_download = [f"nvdcve-2.0-{year}.json.zip" for year in range(2002, current_year + 1)]
+    files_to_download.append("nvdcve-2.0-modified.json.zip")
+    
+    extracted_json_paths = []
+    for filename in files_to_download:
+        url = NVD_CVE_FEEDS_BASE_URL + filename
+        zip_path = NVD_FEEDS_DIR / filename
+        
+        if not download_file(url, zip_path, session):
+            logger.warning(f"Não foi possível baixar {filename}. Continuando...")
+            continue
+            
+        json_path = extract_zip(zip_path, NVD_FEEDS_DIR)
+        if json_path:
+            extracted_json_paths.append(json_path)
+        
+        try: zip_path.unlink()
+        except OSError: pass
+
+    if not extracted_json_paths:
+        logger.error("Nenhum arquivo de feed de CVE foi baixado ou extraído.")
+        return False
+        
+    merge_json_files(extracted_json_paths, RAW_NVD_JSON)
+    return True
+
+# --- Lógica de Coleta de CPEs via API ---
 def extract_vendor_product_name(cpe_uri: str) -> Optional[str]:
     try:
         parts = cpe_uri.split(":")
@@ -37,255 +130,86 @@ def extract_vendor_product_name(cpe_uri: str) -> Optional[str]:
             if not product or product == '*': return None
             return f"{vendor}:{product}"
     except Exception:
-        pass
-    return None
+        return None
 
-try:
-    from .convert_nvd import convert_nvd_to_minimal
-except ImportError:
-    logger.critical(
-        f"Failed relative import of '.convert_nvd'. "
-        f"Ensure 'scripts/__init__.py' exists and 'convert_nvd.py' is in 'scripts/'. "
-        "NVD data conversion will fail."
-    )
-    convert_nvd_to_minimal = None
-
-NVD_BASE_URL = "https://nvd.nist.gov/feeds/json/cve/1.1/"
-YEARS_TO_FETCH = 5 
-CPE_DICT_URL = "https://nvd.nist.gov/feeds/xml/cpe/dictionary/official-cpe-dictionary_v2.3.xml.zip"
-
-def download_file(url: str, dest_path: Path, session: requests.Session) -> bool:
-    logger.info(f"Downloading: {url} to {dest_path}")
-    try:
-        response = session.get(url, stream=True, timeout=60)
-        response.raise_for_status()
-        with open(dest_path, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
-        logger.info(f"Successfully downloaded: {dest_path.name}")
-        return True
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Failed to download {url}: {e}")
-    except Exception as e:
-        logger.error(f"An error occurred while downloading {url}: {e}", exc_info=True)
-    return False
-
-def extract_gz(gz_path: Path, output_path: Path) -> bool:
-    logger.info(f"Extracting: {gz_path.name} to {output_path.name}")
-    try:
-        with gzip.open(gz_path, "rb") as f_in:
-            with open(output_path, "wb") as f_out:
-                shutil.copyfileobj(f_in, f_out)
-        logger.info(f"Successfully extracted: {output_path.name}")
-        return True
-    except Exception as e:
-        logger.error(f"Failed to extract {gz_path.name}: {e}", exc_info=True)
-    return False
-
-def extract_zip(zip_path: Path, output_dir: Path) -> bool:
-    logger.info(f"Extracting {zip_path.name} to {output_dir}...")
-    try:
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref: 
-            zip_ref.extractall(output_dir)
-        logger.info(f"Successfully extracted {zip_path.name} to {output_dir}")
-        return True
-    except zipfile.BadZipFile:
-        logger.error(f"Failed to extract {zip_path.name}: Invalid or corrupted ZIP file.")
-    except Exception as e:
-        logger.error(f"Failed to extract {zip_path.name}: {e}", exc_info=True)
-    return False
-
-def get_nvd_feeds_to_download(session: requests.Session) -> List[str]:
-    feeds = []
-    current_year = datetime.now().year
-    for i in range(YEARS_TO_FETCH):
-        year = current_year - i
-        feeds.append(f"nvdcve-1.1-{year}.json.gz")
-    feeds.append("nvdcve-1.1-modified.json.gz")
-    return feeds
-
-def download_nvd_data():
-    NVD_FEED_DIR.mkdir(parents=True, exist_ok=True)
-    session = requests.Session()
-    feeds_to_download = get_nvd_feeds_to_download(session)
-    downloaded_json_files = []
-
-    logger.info("Downloading NVD yearly feeds...")
-    for feed_name in feeds_to_download:
-        feed_url = NVD_BASE_URL + feed_name
-        gz_path = NVD_FEED_DIR / feed_name
-        json_path = NVD_FEED_DIR / feed_name.replace(".gz", "")
-
-        if download_file(feed_url, gz_path, session):
-            if extract_gz(gz_path, json_path):
-                downloaded_json_files.append(json_path)
-            else:
-                logger.warning(f"Skipping {json_path.name} due to extraction error.")
-        else:
-            logger.warning(f"Skipping {feed_name} due to download error.")
-            
-    return downloaded_json_files
-
-def merge_nvd_json_files(json_files: List[Path], output_file: Path):
-    logger.info(f"Merging {len(json_files)} JSON files from {NVD_FEED_DIR}...")
-    all_cve_items = []
-    total_cves = 0
-    
-    for json_file in json_files:
-        try:
-            with open(json_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                cve_items_in_file = data.get("CVE_Items", [])
-                all_cve_items.extend(cve_items_in_file)
-                total_cves += len(cve_items_in_file)
-                logger.debug(f"Added {len(cve_items_in_file)} CVEs from {json_file.name}")
-        except Exception as e:
-            logger.error(f"Error processing file {json_file}: {e}", exc_info=True)
-            
-    merged_data = {"CVE_data_timestamp": datetime.now().isoformat(), "CVE_Items": all_cve_items}
-    
-    try:
-        with open(output_file, "w", encoding="utf-8") as f:
-            json.dump(merged_data, f, ensure_ascii=False) 
-        logger.info(f"Merge complete: {output_file} ({total_cves} CVEs)")
-    except Exception as e:
-        logger.error(f"Error writing merged NVD file {output_file}: {e}", exc_info=True)
-
-def clean_temp_json_files():
-    logger.info(f"Cleaning up temporary JSON files (extracted from .gz)...")
-    count = 0
-    for item in NVD_FEED_DIR.glob("*.json"):
-        if not item.name.endswith(".gz"): 
-            try:
-                item.unlink()
-                count += 1
-            except Exception as e:
-                logger.error(f"Could not delete temporary file {item}: {e}")
-    if count > 0:
-        logger.info(f"{count} temporary JSON files removed from {NVD_FEED_DIR}.")
-
-def download_cpe_dictionary_if_needed():
-    CPE_DIR.mkdir(parents=True, exist_ok=True)
-    cpe_zip_path = CPE_DIR / CPE_ZIP_NAME
-    cpe_xml_path = CPE_DIR / CPE_XML_NAME
-
-    if not cpe_xml_path.exists(): 
-        logger.info(f"Downloading CPE Dictionary from {CPE_DICT_URL} to {cpe_zip_path}...")
-        session = requests.Session()
-        if download_file(CPE_DICT_URL, cpe_zip_path, session):
-            if extract_zip(cpe_zip_path, CPE_DIR): # extract_zip agora usa zipfile
-                try:
-                    cpe_zip_path.unlink() 
-                    logger.info(f"Removed temporary CPE zip file: {cpe_zip_path.name}")
-                except OSError as e:
-                    logger.warning(f"Could not remove temporary CPE zip file {cpe_zip_path.name}: {e}")
-   
-    else:
-        logger.info(f"CPE XML dictionary already exists at {cpe_xml_path}. Skipping download.")
-
-def generate_cpe_alias_index():
-    logger.info("Starting generation of CPE alias index...")
-    cpe_xml_file = CPE_DIR / CPE_XML_NAME
-    output_index_file = CPE_ALIAS_INDEX_JSON
-
-    if not cpe_xml_file.exists():
-        logger.error(f"CPE Dictionary XML file not found at {cpe_xml_file}. Cannot generate alias index. Please run --update-nvd to download and extract it.")
-        return
-
+def build_cpe_index_from_api() -> bool:
+    logger.info("Construindo índice de CPE a partir da API 2.0. Este processo é longo.")
     alias_index: Dict[str, Set[str]] = defaultdict(set)
-    cpe_items_processed = 0
-    unique_canonical_names_referenced = set()
+    start_index = 0
+    
+    headers = {"apiKey": NVD_API_KEY} if NVD_API_KEY else {}
+    session = requests.Session()
+    session.headers.update(headers)
 
-    try:
-        logger.info(f"Parsing CPE XML dictionary from: {cpe_xml_file}. This may take some time...")
-        
-        context = ET.iterparse(cpe_xml_file, events=("end",))
-        context_iter = iter(context)
+    while True:
+        params = {"resultsPerPage": CPE_API_RESULTS_PER_PAGE, "startIndex": start_index}
+        try:
+            response = session.get(NVD_CPE_API_BASE_URL, params=params, timeout=180)
+            response.raise_for_status()
+            data = response.json()
 
-        for event, elem in context_iter:
-            if elem.tag.endswith("cpe-item") or elem.tag.endswith("cpe23-item"):
-                cpe_items_processed += 1
-                if cpe_items_processed % 200000 == 0: 
-                    logger.info(f"Processed {cpe_items_processed} CPE items for alias index...")
+            products = data.get("products", [])
+            if not products:
+                logger.info("Nenhum produto adicional retornado pela API de CPEs. Finalizando.")
+                break
 
-                cpe_name_attr = elem.get("name") 
-                if not cpe_name_attr:
-                    elem.clear()
+            for item in products:
+                cpe_info = item.get("cpe", {})
+                cpe_name = cpe_info.get("cpeName")
+                if not cpe_name:
                     continue
-
-                canonical_vendor_product = extract_vendor_product_name(cpe_name_attr)
-                if not canonical_vendor_product:
-                    elem.clear()
+                
+                canonical_name = extract_vendor_product_name(cpe_name)
+                if not canonical_name:
                     continue
                 
-                unique_canonical_names_referenced.add(canonical_vendor_product)
+                product_part = canonical_name.split(":", 1)[-1]
+                alias_index[product_part].add(canonical_name)
 
-                product_part_key = canonical_vendor_product.split(":", 1)[-1]
-                if product_part_key:
-                    alias_index[product_part_key].add(canonical_vendor_product)
-                
-                titles_found = []
-                for child in elem: 
-                    if child.tag.endswith("title") and child.text:
-                        lang_attr = child.get("{http://www.w3.org/XML/1998/namespace}lang", "").lower()
-                        if "en" in lang_attr or not lang_attr:
-                            titles_found.append(child.text.strip().lower())
-                
-                for title_text in titles_found:
-                    if title_text and title_text != product_part_key: 
-                        alias_index[title_text].add(canonical_vendor_product)
-                elem.clear()
+                for title_info in cpe_info.get("titles", []):
+                    if title_info.get("lang") == "en" and title_info.get("title"):
+                        alias_index[title_info["title"].strip().lower()].add(canonical_name)
 
-        logger.info(f"Finished parsing XML. Total CPE items processed: {cpe_items_processed}.")
-        
-        final_alias_index = {key: sorted(list(value_set)) for key, value_set in alias_index.items() if value_set}
+            total_results = data.get("totalResults", 0)
+            start_index += len(products)
+            progress = (start_index / total_results) * 100 if total_results > 0 else 100
+            logger.info(f"Progresso CPE: {start_index}/{total_results} produtos processados ({progress:.2f}%)")
 
-        output_index_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_index_file, "w", encoding="utf-8") as f:
-            json.dump(final_alias_index, f, indent=2, ensure_ascii=False)
-        logger.info(f"✔️ CPE alias index successfully generated with {len(final_alias_index)} alias keys, referencing {len(unique_canonical_names_referenced)} unique canonical 'vendor:product' names, at: {output_index_file}")
+            if start_index >= total_results:
+                break
 
-    except ET.ParseError as e:
-        logger.error(f"Error parsing CPE XML file {cpe_xml_file}: {e}", exc_info=True)
-    except FileNotFoundError:
-        logger.error(f"CPE XML file not found at {cpe_xml_file} during parsing.")
-    except Exception as e:
-        logger.error(f"An unexpected error occurred during CPE alias index generation: {e}", exc_info=True)
+            time.sleep(REQUEST_DELAY_SECONDS)
 
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Erro na requisição à API de CPEs (startIndex={start_index}): {e}")
+            logger.error("O processo de criação do índice de CPEs falhou.")
+            return False
+
+    final_alias_index = {key: sorted(list(value)) for key, value in alias_index.items()}
+    with open(CPE_ALIAS_INDEX_JSON, "w", encoding="utf-8") as f:
+        json.dump(final_alias_index, f, indent=2, ensure_ascii=False)
+    
+    logger.info(f"Índice de alias do CPE gerado com sucesso com {len(final_alias_index)} chaves.")
+    return True
+
+# --- Função Principal ---
 def main():
-    logger.info("=== Starting NVD database update (last 5 years + modified) ===")
+    logger.info("=== Iniciando atualização da base de dados ===")
     
-    downloaded_json_files = download_nvd_data()
+    # Etapa 1: Obter CVEs dos Data Feeds
+    if not update_cves_from_data_feeds():
+        logger.critical("Falha ao baixar os feeds de CVEs. O processo não pode continuar.")
+        return
+        
+    if RAW_NVD_JSON.exists() and convert_nvd_to_minimal:
+        logger.info("Convertendo dados brutos de CVEs para formato mínimo...")
+        convert_nvd_to_minimal(input_file=str(RAW_NVD_JSON), output_file=str(REBUILT_NVD_JSON))
     
-    if downloaded_json_files:
-        DATA_DIR.mkdir(parents=True, exist_ok=True)
-        merge_nvd_json_files(downloaded_json_files, MERGED_NVD_JSON)
-    else:
-        logger.warning("No NVD feed files were downloaded. Skipping merge and conversion.")
-
-    if MERGED_NVD_JSON.exists() and MERGED_NVD_JSON.stat().st_size > 0 :
-        logger.info(f"Converting merged NVD ({MERGED_NVD_JSON}) to minimal format ({REBUILT_NVD_JSON})...")
-        if convert_nvd_to_minimal:
-            try:
-                 convert_nvd_to_minimal(input_file=str(MERGED_NVD_JSON), output_file=str(REBUILT_NVD_JSON))
-                 logger.info(f"Converted NVD file saved as: {REBUILT_NVD_JSON}")
-            except Exception as e:
-                 logger.error(f"Error during NVD conversion: {e}", exc_info=True)
-        else:
-             logger.error("Function 'convert_nvd_to_minimal' could not be imported. Cannot convert NVD.")
-    elif downloaded_json_files :
-        logger.error(f"Merged NVD file {MERGED_NVD_JSON} not found or is empty after attempted merge. Cannot convert.")
-
-    clean_temp_json_files()
-
-    logger.info("=== Processing CPE dictionary ===")
-    download_cpe_dictionary_if_needed() 
-    if (CPE_DIR / CPE_XML_NAME).exists(): 
-        generate_cpe_alias_index()
-    else:
-        logger.error(f"CPE XML file {CPE_XML_NAME} not found in {CPE_DIR}. Skipping alias index generation.")
-
-    logger.info("=== NVD and CPE update process completed (check logs for errors). ===")
+    # Etapa 2: Construir índice CPE a partir da API
+    if not build_cpe_index_from_api():
+        logger.error("Não foi possível construir o índice de CPE. A análise pode ser menos precisa.")
+    
+    logger.info("=== Processo de atualização concluído. ===")
 
 if __name__ == "__main__":
     main()
