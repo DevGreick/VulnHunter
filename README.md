@@ -7,7 +7,7 @@
   <br>
   No API calls, no cloud, just raw CVE hunting on your machine.
 <br><br>
-⭐ Star this project if it helped you! | <a href="https://github.com/DevGreick/ThreatDeflect/releases"><strong>Download the Latest Release »</strong></a>
+⭐ Star this project if it helped you! 
 </div>
 
 <p align="center">
