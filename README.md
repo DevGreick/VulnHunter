@@ -6,7 +6,9 @@
   <strong>Offline vulnerability scanner for project dependencies.</strong>
   <br>
   No API calls, no cloud, just raw CVE hunting on your machine.
-</p>
+<br><br>
+⭐ Star this project if it helped you! | <a href="https://github.com/DevGreick/ThreatDeflect/releases"><strong>Download the Latest Release »</strong></a>
+</div>
 
 <p align="center">
   <img alt="Python Version" src="https://img.shields.io/badge/Python-3.10%2B-blue">
