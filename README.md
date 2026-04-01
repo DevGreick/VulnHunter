@@ -5,7 +5,7 @@
 <p align="center">
   <strong>Offline vulnerability scanner for project dependencies.</strong>
   <br>
-  No API calls, no cloud — just raw CVE hunting on your machine.
+  No API calls, no cloud. Raw CVE hunting on your machine.
 </p>
 
 <p align="center">
@@ -25,7 +25,7 @@
 
 ### What it does
 
-VulnHunter scans dependency files across six ecosystems, queries a local vulnerability database (OSV + NVD fallback), and reports known CVEs — completely offline after the initial data download.
+VulnHunter scans dependency files across six ecosystems, queries a local vulnerability database (OSV + NVD fallback), and reports known CVEs. Completely offline after the initial data download.
 
 | Ecosystem | File | Transitive support |
 |---|---|---|
@@ -38,7 +38,7 @@ VulnHunter scans dependency files across six ecosystems, queries a local vulnera
 
 ### Why offline?
 
-- **Air-gapped environments**: Government, defense, banking — where tools can't phone home.
+- **Air-gapped environments**: Government, defense, banking. Where tools can't phone home.
 - **Zero latency**: No network round-trips, instant results.
 - **Privacy**: Your dependency tree never leaves your machine.
 - **No rate limits**: Scan as much as you want.
@@ -71,17 +71,18 @@ vulnhunter scan . --format sarif --output results.sarif
 
 ```
 vulnhunter scan [OPTIONS] PATHS...
-  --format, -f    table | json | sarif (default: table)
-  --output, -o    Output file path (required for json/sarif)
-  --severity, -s  Minimum severity filter: critical, high, medium, low
-  --ignore-file   Path to .vulnignore (default: .vulnignore)
-  --db            Path to vulnerability database
-  --verbose, -v   Enable debug logging
+  --format, -f        table | json | sarif (default: table)
+  --output, -o        Output file path (required for json/sarif)
+  --severity, -s      Minimum severity filter: critical, high, medium, low
+  --ignore-file       Path to .vulnignore (default: .vulnignore)
+  --db                Path to vulnerability database
+  --verbose, -v       Enable debug logging
 
 vulnhunter db update [OPTIONS]
-  --ecosystem, -e   Ecosystems to update (e.g., PyPI npm)
-  --all             Download all ecosystems
-  --source          osv | nvd | both (default: osv)
+  --ecosystem, -e     Ecosystems to update (e.g., PyPI npm)
+  --all               Download all ecosystems
+  --source            osv | nvd | both (default: osv)
+  --nvd-api-key       NVD API key (also reads from env var or .env file)
 
 vulnhunter db info
 ```
@@ -97,7 +98,7 @@ vulnhunter db update --source both            # OSV + NVD
 
 ### Output formats
 
-**Table** (default) — colored terminal output with severity grouping:
+**Table** (default): colored terminal output with severity grouping.
 ```
 ┌──────────────────────────────────────────────┐
 │           VulnHunter Scan Results            │
@@ -109,12 +110,12 @@ vulnhunter db update --source both            # OSV + NVD
 └──────────┴─────────┴──────────┴──────────────┘
 ```
 
-**JSON** — machine-readable report:
+**JSON**: machine-readable report.
 ```bash
 vulnhunter scan . --format json --output reports/report.json
 ```
 
-**SARIF 2.1.0** — integrates with GitHub Code Scanning, VS Code, and other SARIF-compatible tools:
+**SARIF 2.1.0**: integrates with GitHub Code Scanning, VS Code, and other SARIF-compatible tools.
 ```bash
 vulnhunter scan . --format sarif --output results.sarif
 ```
@@ -162,10 +163,10 @@ Built with OWASP best practices and secure-by-default design.
 
 ### Known limitations
 
-- Accuracy depends on OSV/NVD data freshness — run `db update` regularly.
+- Accuracy depends on OSV/NVD data freshness. Run `db update` regularly.
 - CPE matching (NVD) can produce false positives for uncommon package names.
-- Version comparison uses Python's `packaging.version` — exotic version schemes may not parse.
-- Static analysis only: does not analyze how dependencies are used in code.
+- Version comparison uses Python's `packaging.version`. Exotic version schemes may not parse.
+- Static analysis only. Does not analyze how dependencies are used in code.
 
 ---
 
@@ -173,7 +174,7 @@ Built with OWASP best practices and secure-by-default design.
 
 ### O que faz
 
-VulnHunter escaneia arquivos de dependência em seis ecossistemas, consulta um banco de vulnerabilidades local (OSV + NVD como fallback) e reporta CVEs conhecidas — completamente offline após o download inicial dos dados.
+VulnHunter escaneia arquivos de dependência em seis ecossistemas, consulta um banco de vulnerabilidades local (OSV + NVD como fallback) e reporta CVEs conhecidas. Completamente offline após o download inicial dos dados.
 
 | Ecossistema | Arquivo | Suporte transitivo |
 |---|---|---|
@@ -186,7 +187,7 @@ VulnHunter escaneia arquivos de dependência em seis ecossistemas, consulta um b
 
 ### Por que offline?
 
-- **Ambientes air-gapped**: Governo, defesa, bancos — onde ferramentas não podem se comunicar externamente.
+- **Ambientes air-gapped**: Governo, defesa, bancos. Onde ferramentas não podem se comunicar externamente.
 - **Zero latência**: Sem round-trips de rede, resultados instantâneos.
 - **Privacidade**: Sua árvore de dependências nunca sai da sua máquina.
 - **Sem rate limits**: Escaneie o quanto quiser.
@@ -219,17 +220,18 @@ vulnhunter scan . --format sarif --output results.sarif
 
 ```
 vulnhunter scan [OPÇÕES] CAMINHOS...
-  --format, -f    table | json | sarif (padrão: table)
-  --output, -o    Caminho do arquivo de saída (obrigatório para json/sarif)
-  --severity, -s  Filtro de severidade mínima: critical, high, medium, low
-  --ignore-file   Caminho para .vulnignore (padrão: .vulnignore)
-  --db            Caminho para o banco de vulnerabilidades
-  --verbose, -v   Habilitar logging de debug
+  --format, -f        table | json | sarif (padrão: table)
+  --output, -o        Caminho do arquivo de saída (obrigatório para json/sarif)
+  --severity, -s      Filtro de severidade mínima: critical, high, medium, low
+  --ignore-file       Caminho para .vulnignore (padrão: .vulnignore)
+  --db                Caminho para o banco de vulnerabilidades
+  --verbose, -v       Habilitar logging de debug
 
 vulnhunter db update [OPÇÕES]
-  --ecosystem, -e   Ecossistemas para atualizar (ex: PyPI npm)
-  --all             Baixar todos os ecossistemas
-  --source          osv | nvd | both (padrão: osv)
+  --ecosystem, -e     Ecossistemas para atualizar (ex: PyPI npm)
+  --all               Baixar todos os ecossistemas
+  --source            osv | nvd | both (padrão: osv)
+  --nvd-api-key       API key do NVD (também lê de variável de ambiente ou .env)
 
 vulnhunter db info
 ```
@@ -245,14 +247,14 @@ vulnhunter db update --source both            # OSV + NVD
 
 ### Formatos de saída
 
-**Table** (padrão) — saída colorida no terminal com agrupamento por severidade.
+**Table** (padrão): saída colorida no terminal com agrupamento por severidade.
 
-**JSON** — relatório legível por máquina:
+**JSON**: relatório legível por máquina.
 ```bash
 vulnhunter scan . --format json --output reports/report.json
 ```
 
-**SARIF 2.1.0** — integra com GitHub Code Scanning, VS Code e outras ferramentas compatíveis:
+**SARIF 2.1.0**: integra com GitHub Code Scanning, VS Code e outras ferramentas compatíveis.
 ```bash
 vulnhunter scan . --format sarif --output results.sarif
 ```
@@ -296,20 +298,20 @@ Para escaneamento completo da árvore de dependências, garanta que as dependên
 
 ### Segurança
 
-Construído com boas práticas OWASP e design secure-by-default. A API key do NVD é lida exclusivamente da variável de ambiente `NVD_API_KEY`.
+Construído com boas práticas OWASP e design secure-by-default.
 
 ### Limitações conhecidas
 
-- Precisão depende da atualização dos dados OSV/NVD — execute `db update` regularmente.
+- Precisão depende da atualização dos dados OSV/NVD. Execute `db update` regularmente.
 - Matching por CPE (NVD) pode gerar falsos positivos para pacotes incomuns.
-- Comparação de versões usa `packaging.version` do Python — esquemas exóticos podem não ser parseados.
-- Análise estática apenas: não analisa como as dependências são usadas no código.
+- Comparação de versões usa `packaging.version` do Python. Esquemas exóticos podem não ser parseados.
+- Análise estática apenas. Não analisa como as dependências são usadas no código.
 
 ---
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
+MIT License. See [LICENSE](LICENSE) for details.
 
 ## Author
 

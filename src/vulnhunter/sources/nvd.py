@@ -3,6 +3,7 @@ import os
 import time
 from collections.abc import Callable
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 import requests
@@ -18,14 +19,34 @@ PAGE_SIZE = 2000
 USER_AGENT = "VulnHunter/2.0 (vulnerability-scanner)"
 
 
-def _get_session() -> tuple[requests.Session, float, str]:
+def _load_dotenv_key() -> str:
+    for candidate in (Path.cwd() / ".env", Path.home() / ".vulnhunter" / ".env"):
+        if candidate.is_file():
+            try:
+                for line in candidate.read_text().splitlines():
+                    stripped = line.strip()
+                    if stripped.startswith("NVD_API_KEY=") and not stripped.startswith("#"):
+                        return stripped.split("=", 1)[1].strip().strip("\"'")
+            except OSError:
+                continue
+    return ""
+
+
+def _resolve_api_key(explicit_key: str = "") -> str:
+    if explicit_key:
+        return explicit_key
+    from_env = os.environ.get("NVD_API_KEY", "")
+    if from_env:
+        return from_env
+    return _load_dotenv_key()
+
+
+def _get_session(api_key: str = "") -> tuple[requests.Session, float, str]:
     session = requests.Session()
     session.headers["User-Agent"] = USER_AGENT
-    api_key = os.environ.get("NVD_API_KEY", "")
-    delay = 6.0
-    if api_key:
-        delay = 0.6
-    return session, delay, api_key
+    resolved_key = _resolve_api_key(api_key)
+    delay = 0.6 if resolved_key else 6.0
+    return session, delay, resolved_key
 
 
 def extract_vendor_product(cpe_uri: str) -> str | None:
@@ -217,10 +238,11 @@ def _paginated_fetch(
 
 def update_nvd(
     db: VulnDB,
+    api_key: str = "",
     callback: Callable | None = None,
 ) -> int:
-    session, delay, api_key = _get_session()
-    items = _paginated_fetch(session, NVD_CVE_URL, delay, "vulnerabilities", api_key, callback)
+    session, delay, resolved_key = _get_session(api_key)
+    items = _paginated_fetch(session, NVD_CVE_URL, delay, "vulnerabilities", resolved_key, callback)
 
     count = 0
     for item in items:
@@ -239,10 +261,11 @@ def update_nvd(
 
 def build_cpe_index(
     db: VulnDB,
+    api_key: str = "",
     callback: Callable | None = None,
 ) -> int:
-    session, delay, api_key = _get_session()
-    items = _paginated_fetch(session, NVD_CPE_URL, delay, "products", api_key, callback)
+    session, delay, resolved_key = _get_session(api_key)
+    items = _paginated_fetch(session, NVD_CPE_URL, delay, "products", resolved_key, callback)
 
     count = 0
     for item in items:

@@ -196,6 +196,11 @@ def db_update(
         "--source",
         help="Data source: osv, nvd, or both (default: osv).",
     ),
+    nvd_api_key: str = typer.Option(
+        "",
+        "--nvd-api-key",
+        help="NVD API key. Also reads from NVD_API_KEY env var or .env file.",
+    ),
     db_path: Path | None = typer.Option(None, "--db"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
 ) -> None:
@@ -203,6 +208,16 @@ def db_update(
 
     db = VulnDB(db_path)
     effective_source = source or "osv"
+
+    if effective_source in ("nvd", "both"):
+        from vulnhunter.sources.nvd import _resolve_api_key
+
+        if not _resolve_api_key(nvd_api_key):
+            console.print(
+                "[bold yellow]No NVD API key found.[/] Requests will be rate-limited to 1 every 6s.\n"
+                "Set it via: --nvd-api-key, NVD_API_KEY env var, or .env file.\n"
+                "Get a free key at: [link]https://nvd.nist.gov/developers/request-an-api-key[/link]"
+            )
 
     if effective_source in ("osv", "both"):
         from vulnhunter.sources.osv import update_osv
@@ -234,7 +249,7 @@ def db_update(
             console=console,
         ) as progress:
             task = progress.add_task("Updating NVD database...", total=None)
-            count = update_nvd(db)
+            count = update_nvd(db, api_key=nvd_api_key)
             progress.update(task, description=f"NVD: {count} vulnerabilities loaded")
 
         console.print(f"[bold green]NVD update complete:[/] {count} vulnerabilities")
