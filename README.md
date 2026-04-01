@@ -158,13 +158,7 @@ For complete dependency tree scanning, ensure dependencies are installed:
 
 ### Security
 
-- Zip Slip protection on all archive extraction
-- XXE prevention via `defusedxml`
-- All SQL queries parameterized
-- Path traversal protection on output files
-- NVD API key read from `NVD_API_KEY` env var (never logged)
-- Zip bomb limits (max file size, total size, member count)
-- Directory scan depth limit with skip list
+Built with OWASP best practices and secure-by-default design. NVD API key is read exclusively from the `NVD_API_KEY` environment variable.
 
 ### Known limitations
 
@@ -302,13 +296,7 @@ Para escaneamento completo da árvore de dependências, garanta que as dependên
 
 ### Segurança
 
-- Proteção contra Zip Slip em toda extração de arquivos
-- Prevenção de XXE via `defusedxml`
-- Todas as queries SQL parametrizadas
-- Proteção contra path traversal em arquivos de saída
-- API key do NVD lida de `NVD_API_KEY` (nunca logada)
-- Limites contra zip bomb (tamanho por arquivo, total e número de membros)
-- Limite de profundidade no scan de diretórios com skip list
+Construído com boas práticas OWASP e design secure-by-default. A API key do NVD é lida exclusivamente da variável de ambiente `NVD_API_KEY`.
 
 ### Limitações conhecidas
 
