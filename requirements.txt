@@ -1,4 +1,0 @@
-requests
-packaging
-pydantic
-pytest
