@@ -158,7 +158,7 @@ For complete dependency tree scanning, ensure dependencies are installed:
 
 ### Security
 
-Built with OWASP best practices and secure-by-default design. NVD API key is read exclusively from the `NVD_API_KEY` environment variable.
+Built with OWASP best practices and secure-by-default design.
 
 ### Known limitations
 
