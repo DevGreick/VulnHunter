@@ -20,12 +20,18 @@
 </p>
 
 <p align="center">
-  <a href="https://devgreick.github.io/VulnHunter">Docs</a> · <a href="#-quick-start">Quick Start</a> · <a href="#-ai-triage">AI Triage</a> · <a href="#-português-br">Português</a>
+  <a href="#-english">English</a> · <a href="#-português">Português</a>
+</p>
+
+<p align="center">
+  <a href="https://devgreick.github.io/VulnHunter">Docs</a> · <a href="#quick-start">Quick Start</a> · <a href="#ai-triage">AI Triage</a>
 </p>
 
 ---
 
-## What makes VulnHunter different
+## 🇺🇸 English
+
+### What makes VulnHunter different
 
 Most vulnerability scanners send your dependency tree to a cloud service. VulnHunter does everything locally:
 
@@ -36,7 +42,7 @@ Most vulnerability scanners send your dependency tree to a cloud service. VulnHu
 
 ---
 
-## Quick Start
+### Quick Start
 
 ```bash
 # Install
@@ -56,7 +62,7 @@ That's it. Three commands from zero to vulnerability report.
 
 ---
 
-## AI Triage
+### AI Triage
 
 Regular scanners dump a list of CVEs and leave you guessing. VulnHunter's AI triage reads your actual source code, correlates it with each CVE, and answers the question that matters: **is this vulnerability reachable in my code?**
 
@@ -83,7 +89,7 @@ Runs entirely on your machine via [Ollama](https://ollama.com). Recommended mode
 
 ---
 
-## Setup Wizard
+### Setup Wizard
 
 `vulnhunter init` launches an interactive wizard with selectable menus (no typos):
 
@@ -94,7 +100,7 @@ Runs entirely on your machine via [Ollama](https://ollama.com). Recommended mode
 
 ---
 
-## Supported Ecosystems
+### Supported Ecosystems
 
 | Ecosystem | Files | Transitive Deps |
 |---|---|---|
@@ -108,7 +114,7 @@ Runs entirely on your machine via [Ollama](https://ollama.com). Recommended mode
 
 ---
 
-## Data Sources
+### Data Sources
 
 | Source | Role | Coverage |
 |---|---|---|
@@ -125,7 +131,7 @@ vulnhunter db info        # Check database stats
 
 ---
 
-## Output Formats
+### Output Formats
 
 **Table** — colored terminal output with severity grouping (default)
 
@@ -141,7 +147,7 @@ vulnhunter scan . -f sarif -o results.sarif
 
 ---
 
-## CLI Reference
+### CLI Reference
 
 ```
 vulnhunter init                          Setup wizard
@@ -169,7 +175,7 @@ vulnhunter config remove-nvd-key         Remove NVD API key from keyring
 
 ---
 
-## CI/CD Integration
+### CI/CD Integration
 
 ```yaml
 # .github/workflows/vulnhunter.yml
@@ -194,7 +200,7 @@ jobs:
 
 ---
 
-## Ignoring Vulnerabilities
+### Ignoring Vulnerabilities
 
 Create a `.vulnignore` file:
 
@@ -211,7 +217,7 @@ CVE-2023-0003 guzzlehttp/guzzle
 
 ---
 
-## Security
+### Security
 
 - API keys stored in OS keyring via `keyring` — never in plaintext
 - No data exfiltration — all scanning and AI analysis happens locally
@@ -221,7 +227,7 @@ CVE-2023-0003 guzzlehttp/guzzle
 
 ---
 
-## Known Limitations
+### Known Limitations
 
 - Accuracy depends on OSV/NVD data freshness — run `db update` regularly
 - CPE matching (NVD) can produce false positives for uncommon package names
@@ -230,9 +236,7 @@ CVE-2023-0003 guzzlehttp/guzzle
 
 ---
 
----
-
-## Português (BR)
+## 🇧🇷 Português
 
 <p align="center">
   <strong>Suas dependências têm segredos. O VulnHunter encontra.</strong>
