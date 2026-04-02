@@ -52,6 +52,7 @@ select = ["E", "F", "W", "I", "S", "B", "UP"]
 [tool.ruff.lint.per-file-ignores]
 "src/vulnhunter/cli.py" = ["B008"]
 "src/vulnhunter/parsers/base.py" = ["S603"]
+"src/vulnhunter/onboarding.py" = ["S603", "S607"]
 "tests/**" = ["S101"]
 
 [tool.mypy]

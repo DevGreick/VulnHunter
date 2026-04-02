@@ -185,6 +185,40 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "No problem. VulnHunter works without it, just slower on NVD updates.",
         "pt": "Sem problema. O VulnHunter funciona sem ela, so fica mais lento nas atualizacoes do NVD.",
     },
+    "dep_tools_title": {
+        "en": "Transitive Dependency Tools",
+        "pt": "Ferramentas de Dependencias Transitivas",
+    },
+    "dep_tools_desc": {
+        "en": (
+            "VulnHunter can detect transitive dependencies (deps of your deps) "
+            "using ecosystem-specific tools.\n"
+            "[yellow]Without these tools, only direct dependencies will be scanned. "
+            "Hidden vulnerabilities in sub-dependencies will NOT be detected.[/yellow]"
+        ),
+        "pt": (
+            "O VulnHunter detecta dependencias transitivas (deps das suas deps) "
+            "usando ferramentas de cada ecossistema.\n"
+            "[yellow]Sem essas ferramentas, apenas dependencias diretas serao escaneadas. "
+            "Vulnerabilidades ocultas em sub-dependencias NAO serao detectadas.[/yellow]"
+        ),
+    },
+    "dep_tools_install_ask": {
+        "en": "Install missing Python tools? (pipdeptree)",
+        "pt": "Instalar ferramentas Python faltando? (pipdeptree)",
+    },
+    "dep_tools_installing": {
+        "en": "Installing",
+        "pt": "Instalando",
+    },
+    "dep_tools_installed": {
+        "en": "installed",
+        "pt": "instalado",
+    },
+    "dep_tools_install_failed": {
+        "en": "Failed to install",
+        "pt": "Falha ao instalar",
+    },
 }
 
 console = Console()
@@ -248,6 +282,73 @@ def detect_ollama(ollama_url: str = "http://localhost:11434") -> tuple[bool, lis
 
 def needs_setup() -> bool:
     return not CONFIG_FILE.exists()
+
+
+DEP_TOOLS: list[dict[str, str]] = [
+    {"name": "pipdeptree", "ecosystem": "Python", "install": "pip install pipdeptree", "check": "pipdeptree"},
+    {"name": "npm", "ecosystem": "Node.js", "install": "https://nodejs.org", "check": "npm"},
+    {"name": "mvn", "ecosystem": "Java", "install": "https://maven.apache.org", "check": "mvn"},
+    {"name": "composer", "ecosystem": "PHP", "install": "https://getcomposer.org", "check": "composer"},
+    {"name": "go", "ecosystem": "Go", "install": "https://go.dev/dl", "check": "go"},
+]
+
+
+def _check_tool(cmd: str) -> bool:
+    import shutil
+
+    return shutil.which(cmd) is not None
+
+
+def _show_dep_tools(lang: str) -> None:
+    import subprocess
+
+    console.print(f"\n[bold]{_t('dep_tools_desc', lang)}[/bold]\n")
+
+    table = Table(title=_t("dep_tools_title", lang))
+    table.add_column("Ecosystem", style="bold")
+    table.add_column("Tool", style="cyan")
+    table.add_column("Status")
+    table.add_column("Install")
+
+    missing_pip: list[str] = []
+
+    for tool in DEP_TOOLS:
+        found: bool = _check_tool(tool["check"])
+        if found:
+            status = "[green]OK[/green]"
+        else:
+            status = "[yellow]missing[/yellow]"
+            if tool["install"].startswith("pip"):
+                missing_pip.append(tool["name"])
+        table.add_row(
+            tool["ecosystem"],
+            tool["name"],
+            status,
+            "" if found else tool["install"],
+        )
+
+    console.print(table)
+
+    if missing_pip:
+        install = typer.confirm(
+            _t("dep_tools_install_ask", lang),
+            default=True,
+        )
+        if install:
+            for pkg in missing_pip:
+                console.print(f"  {_t('dep_tools_installing', lang)} {pkg}...")
+                try:
+                    import sys
+
+                    subprocess.run(
+                        [sys.executable, "-m", "pip", "install", pkg],
+                        capture_output=True,
+                        check=True,
+                        timeout=60,
+                    )
+                    console.print(f"  [green]{pkg} {_t('dep_tools_installed', lang)}[/green]")
+                except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+                    console.print(f"  [red]{_t('dep_tools_install_failed', lang)} {pkg}[/red]")
 
 
 def _show_model_table(installed_models: list[str], lang: str) -> None:
@@ -381,6 +482,8 @@ def run_wizard() -> dict[str, Any]:
                 console.print(f"[yellow]{_t('nvd_save_failed', lang)}[/yellow]")
     else:
         console.print(_t("nvd_skip", lang))
+
+    _show_dep_tools(lang)
 
     if not DB_FILE.exists():
         console.print(f"\n[yellow]{_t('db_not_found', lang)}[/yellow]")
