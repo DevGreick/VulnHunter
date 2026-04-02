@@ -25,12 +25,6 @@ classifiers = [
     "Typing :: Typed",
 ]
 
-[project.urls]
-Homepage = "https://devgreick.github.io/VulnHunter/"
-Repository = "https://github.com/DevGreick/VulnHunter"
-Documentation = "https://devgreick.github.io/VulnHunter/"
-Issues = "https://github.com/DevGreick/VulnHunter/issues"
-Changelog = "https://github.com/DevGreick/VulnHunter/releases"
 dependencies = [
     "typer>=0.9.0,<1.0",
     "rich>=13.0.0,<14.0",
@@ -41,6 +35,13 @@ dependencies = [
     "keyring>=25.0.0,<26.0",
     "openpyxl>=3.1.0,<4.0",
 ]
+
+[project.urls]
+Homepage = "https://devgreick.github.io/VulnHunter/"
+Repository = "https://github.com/DevGreick/VulnHunter"
+Documentation = "https://devgreick.github.io/VulnHunter/"
+Issues = "https://github.com/DevGreick/VulnHunter/issues"
+Changelog = "https://github.com/DevGreick/VulnHunter/releases"
 
 [project.optional-dependencies]
 semgrep = [
