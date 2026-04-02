@@ -3,7 +3,7 @@ import sqlite3
 
 logger = logging.getLogger("vulnhunter.db.migrations")
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS metadata (
@@ -46,7 +46,27 @@ CREATE TABLE IF NOT EXISTS cpe_aliases (
 
 CREATE INDEX IF NOT EXISTS idx_cpe_alias_pkg
     ON cpe_aliases(package_name);
+
+CREATE TABLE IF NOT EXISTS vuln_aliases (
+    vuln_id TEXT NOT NULL,
+    alias TEXT NOT NULL,
+    PRIMARY KEY (vuln_id, alias)
+);
+
+CREATE INDEX IF NOT EXISTS idx_vuln_alias
+    ON vuln_aliases(alias);
 """
+
+MIGRATIONS: dict[int, list[str]] = {
+    2: [
+        """CREATE TABLE IF NOT EXISTS vuln_aliases (
+            vuln_id TEXT NOT NULL,
+            alias TEXT NOT NULL,
+            PRIMARY KEY (vuln_id, alias)
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_vuln_alias ON vuln_aliases(alias)",
+    ],
+}
 
 
 def init_db(conn: sqlite3.Connection) -> None:
@@ -61,6 +81,20 @@ def init_db(conn: sqlite3.Connection) -> None:
     logger.info("Database schema initialized (version %d)", SCHEMA_VERSION)
 
 
+def _run_migrations(conn: sqlite3.Connection, current_version: int) -> None:
+    cursor = conn.cursor()
+    for version in range(current_version + 1, SCHEMA_VERSION + 1):
+        stmts = MIGRATIONS.get(version, [])
+        for stmt in stmts:
+            cursor.execute(stmt)
+        logger.info("Applied migration to version %d", version)
+    cursor.execute(
+        "INSERT OR REPLACE INTO metadata (key, value) VALUES (?, ?)",
+        ("schema_version", str(SCHEMA_VERSION)),
+    )
+    conn.commit()
+
+
 def check_schema(conn: sqlite3.Connection) -> bool:
     try:
         cursor = conn.cursor()
@@ -68,6 +102,10 @@ def check_schema(conn: sqlite3.Connection) -> bool:
         row = cursor.fetchone()
         if row is None:
             return False
-        return int(row[0]) == SCHEMA_VERSION
+        current = int(row[0])
+        if current < SCHEMA_VERSION:
+            _run_migrations(conn, current)
+            return True
+        return current == SCHEMA_VERSION
     except sqlite3.OperationalError:
         return False

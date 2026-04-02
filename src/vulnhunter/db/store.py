@@ -150,5 +150,26 @@ class VulnDB:
             "cpe_aliases": total_aliases,
         }
 
+    def insert_vuln_alias(self, vuln_id: str, alias: str) -> None:
+        self.conn.execute(
+            "INSERT OR IGNORE INTO vuln_aliases (vuln_id, alias) VALUES (?, ?)",
+            (vuln_id, alias),
+        )
+
+    def get_aliases(self, vuln_id: str) -> list[str]:
+        cursor = self.conn.execute(
+            "SELECT alias FROM vuln_aliases WHERE vuln_id = ?",
+            (vuln_id,),
+        )
+        return [row[0] for row in cursor.fetchall()]
+
+    def get_severity_by_id(self, vuln_id: str) -> str | None:
+        cursor = self.conn.execute(
+            "SELECT severity FROM vulnerabilities WHERE id = ? AND severity != 'UNKNOWN'",
+            (vuln_id,),
+        )
+        row = cursor.fetchone()
+        return row[0] if row else None
+
     def commit(self) -> None:
         self.conn.commit()

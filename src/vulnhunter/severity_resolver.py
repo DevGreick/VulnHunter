@@ -55,14 +55,15 @@ CWE_PATTERN = re.compile(r"CWE-\d+", re.IGNORECASE)
 
 def _resolve_from_nvd(db: VulnDB, vuln_id: str) -> Optional[str]:
     try:
-        cursor = db.conn.execute(
-            """SELECT severity FROM vulnerabilities
-               WHERE id = ? AND source = 'NVD' AND severity != 'UNKNOWN'""",
-            (vuln_id,),
-        )
-        row = cursor.fetchone()
-        if row and row[0] and row[0] != "UNKNOWN":
-            return row[0]
+        severity = db.get_severity_by_id(vuln_id)
+        if severity:
+            return severity
+
+        aliases = db.get_aliases(vuln_id)
+        for alias in aliases:
+            severity = db.get_severity_by_id(alias)
+            if severity:
+                return severity
     except Exception:
         logger.debug("NVD cross-reference failed for %s", vuln_id)
     return None

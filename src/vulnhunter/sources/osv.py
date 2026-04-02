@@ -193,6 +193,10 @@ def _process_vuln(db: VulnDB, data: dict[str, Any]) -> bool:
         modified=modified,
     )
 
+    for alias in data.get("aliases", []):
+        if alias != vuln_id:
+            db.insert_vuln_alias(vuln_id, alias)
+
     for affected in data.get("affected", []):
         pkg = affected.get("package", {})
         ecosystem = pkg.get("ecosystem", "")
