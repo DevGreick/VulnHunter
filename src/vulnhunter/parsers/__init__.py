@@ -9,6 +9,7 @@ from vulnhunter.parsers.nodejs import NodejsParser
 from vulnhunter.parsers.php import PhpParser
 from vulnhunter.parsers.python import PythonParser
 from vulnhunter.parsers.ruby import RubyParser
+from vulnhunter.parsers.rust import RustParser
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -19,6 +20,8 @@ SUPPORTED_FILES: list[str] = [
     "composer.json",
     "gemfile.lock",
     "go.mod",
+    "cargo.toml",
+    "cargo.lock",
 ]
 
 _PARSER_MAP: dict[str, Parser] = {
@@ -28,6 +31,8 @@ _PARSER_MAP: dict[str, Parser] = {
     "composer.json": PhpParser(),
     "gemfile.lock": RubyParser(),
     "go.mod": GolangParser(),
+    "cargo.toml": RustParser(),
+    "cargo.lock": RustParser(),
 }
 
 
@@ -38,6 +43,8 @@ _DISPATCH_RULES: list[tuple[str, str, Parser]] = [
     ("composer", ".json", PhpParser()),
     ("gemfile", ".lock", RubyParser()),
     ("go", ".mod", GolangParser()),
+    ("cargo", ".toml", RustParser()),
+    ("cargo", ".lock", RustParser()),
 ]
 
 

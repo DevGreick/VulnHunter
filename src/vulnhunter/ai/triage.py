@@ -30,6 +30,7 @@ ECOSYSTEM_EXTENSIONS: dict[str, list[str]] = {
     "packagist": [".php"],
     "rubygems": [".rb"],
     "go": [".go"],
+    "crates.io": [".rs"],
 }
 
 ECOSYSTEM_PATTERNS: dict[str, Callable[[str], re.Pattern[str]]] = {
@@ -53,6 +54,10 @@ ECOSYSTEM_PATTERNS: dict[str, Callable[[str], re.Pattern[str]]] = {
     "go": lambda pkg: re.compile(
         rf"""['\"]{re.escape(pkg)}['\"]""", re.MULTILINE
     ),
+    "crates.io": lambda pkg: re.compile(
+        rf"(?:use\s+{re.escape(pkg.replace('-', '_'))}|extern\s+crate\s+{re.escape(pkg.replace('-', '_'))})",
+        re.MULTILINE,
+    ),
 }
 
 SYSTEM_PROMPT: str = (
@@ -67,11 +72,13 @@ PROMPT_TEMPLATE: str = (
     "- Package: {package_name} {version}\n"
     "- Severity (CVSS): {severity}\n"
     "- Description: {summary}\n"
+    "{fixed_info}"
     "\n"
     "CODE REFERENCES (where this package is used in the project):\n"
     "{code_refs_formatted}\n"
+    "{semgrep_context}"
     "\n"
-    "Assess based on code usage:\n"
+    "Assess based on ALL evidence above (code usage + static analysis findings):\n"
     "1. real_risk: CRITICAL, HIGH, MEDIUM, LOW, or IRRELEVANT\n"
     "2. analysis: Brief explanation (1-2 sentences)\n"
     "3. recommendation: What the developer should do\n"
@@ -133,8 +140,8 @@ class CodeAnalyzer:
                     if len(results) >= 10:
                         break
                     if pattern.search(line):
-                        start: int = max(0, idx - 1)
-                        end: int = min(len(lines), idx + 2)
+                        start: int = max(0, idx - 5)
+                        end: int = min(len(lines), idx + 6)
                         snippet: str = "\n".join(lines[start:end])
                         results.append(
                             {
@@ -159,11 +166,17 @@ class TriageEngine:
         model: str = "mistral",
         ollama_url: str = "http://localhost:11434",
         language: str = "en",
+        deep_triage: bool = False,
     ) -> None:
         self._model: str = model
         self._ollama_url: str = ollama_url.rstrip("/")
         self._analyzer: CodeAnalyzer = CodeAnalyzer()
         self._language: str = LANG_NAMES.get(language, "English")
+        self._deep_triage: bool = deep_triage
+        self._semgrep: Any = None
+        if self._deep_triage:
+            from vulnhunter.ai.semgrep_engine import SemgrepEngine
+            self._semgrep = SemgrepEngine()
 
     def is_available(self) -> bool:
         try:
@@ -174,8 +187,16 @@ class TriageEngine:
         except requests.RequestException:
             return False
 
+    def semgrep_available(self) -> bool:
+        if self._semgrep is None:
+            return False
+        return self._semgrep.is_available()
+
     def _build_prompt(
-        self, vuln: dict[str, Any], code_refs: list[dict[str, Any]]
+        self,
+        vuln: dict[str, Any],
+        code_refs: list[dict[str, Any]],
+        semgrep_context: str = "",
     ) -> str:
         if code_refs:
             refs_text: str = "\n".join(
@@ -187,13 +208,25 @@ class TriageEngine:
                 "No direct imports found. This package may be a transitive dependency."
             )
 
+        fixed_ver: str = vuln.get("fixed_version", "")
+        fixed_info: str = f"- Fixed in: {fixed_ver}\n" if fixed_ver else ""
+
+        semgrep_block: str = ""
+        if semgrep_context:
+            semgrep_block = (
+                "\n\nSTATIC ANALYSIS FINDINGS (Semgrep — deterministic, high confidence):\n"
+                f"{semgrep_context}\n"
+            )
+
         return PROMPT_TEMPLATE.format(
             vuln_id=vuln.get("id", "N/A"),
             package_name=vuln.get("package", "unknown"),
             version=vuln.get("version", "unknown"),
             severity=vuln.get("severity", "unknown"),
             summary=vuln.get("summary", "No description available"),
+            fixed_info=fixed_info,
             code_refs_formatted=refs_text,
+            semgrep_context=semgrep_block,
             language=self._language,
         )
 
@@ -258,9 +291,12 @@ class TriageEngine:
             }
 
     def triage_vulnerability(
-        self, vuln: dict[str, Any], code_refs: list[dict[str, Any]]
+        self,
+        vuln: dict[str, Any],
+        code_refs: list[dict[str, Any]],
+        semgrep_context: str = "",
     ) -> dict[str, str]:
-        prompt: str = self._build_prompt(vuln, code_refs)
+        prompt: str = self._build_prompt(vuln, code_refs, semgrep_context)
         return self._call_ollama(prompt)
 
     def triage_all(
@@ -272,6 +308,8 @@ class TriageEngine:
         results: list[dict[str, Any]] = []
         total: int = len(vulnerabilities)
 
+        semgrep_cache: dict[str, str] = {}
+
         for idx, vuln in enumerate(vulnerabilities):
             package_name: str = vuln.get("package", "")
             ecosystem: str = vuln.get("ecosystem", "")
@@ -280,7 +318,19 @@ class TriageEngine:
                 project_dir, package_name, ecosystem
             )
 
-            triage_result: dict[str, str] = self.triage_vulnerability(vuln, code_refs)
+            semgrep_context: str = ""
+            if self._deep_triage and self._semgrep is not None:
+                cache_key: str = f"{ecosystem}:{package_name}"
+                if cache_key not in semgrep_cache:
+                    findings = self._semgrep.scan(project_dir, ecosystem, package_name)
+                    semgrep_cache[cache_key] = self._semgrep.findings_to_context(findings)
+                semgrep_context = semgrep_cache[cache_key]
+
+            triage_result: dict[str, str] = self.triage_vulnerability(
+                vuln, code_refs, semgrep_context
+            )
+
+            triage_result["evidence"] = "semgrep+llm" if semgrep_context else "llm"
 
             results.append(
                 {

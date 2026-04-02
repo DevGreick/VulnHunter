@@ -18,6 +18,7 @@ class Ecosystem(str, Enum):
     PACKAGIST = "Packagist"
     RUBYGEMS = "RubyGems"
     GO = "Go"
+    CRATES = "crates.io"
 
 
 ECOSYSTEM_FROM_FILE = {
@@ -27,6 +28,8 @@ ECOSYSTEM_FROM_FILE = {
     "composer.json": Ecosystem.PACKAGIST,
     "gemfile.lock": Ecosystem.RUBYGEMS,
     "go.mod": Ecosystem.GO,
+    "cargo.toml": Ecosystem.CRATES,
+    "cargo.lock": Ecosystem.CRATES,
 }
 
 OSV_ECOSYSTEM_MAP = {
@@ -36,6 +39,7 @@ OSV_ECOSYSTEM_MAP = {
     Ecosystem.PACKAGIST: "Packagist",
     Ecosystem.RUBYGEMS: "RubyGems",
     Ecosystem.GO: "Go",
+    Ecosystem.CRATES: "crates.io",
 }
 
 

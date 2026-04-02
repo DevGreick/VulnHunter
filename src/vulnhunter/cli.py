@@ -242,6 +242,11 @@ def scan(
         "--model",
         help="AI model to use (e.g. llama3:8b, mistral). Uses config default if omitted.",
     ),
+    deep_triage: bool = typer.Option(
+        False,
+        "--deep-triage",
+        help="Use Semgrep static analysis + AI for evidence-based triage (requires semgrep).",
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed logs."),
 ) -> None:
     _setup_logging(verbose)
@@ -292,7 +297,7 @@ def scan(
 
     render_output(result, format, output)
 
-    _run_ai_triage(result, paths, ai_triage, model)
+    _run_ai_triage(result, paths, ai_triage, model, deep_triage)
 
     db.close()
 
@@ -300,11 +305,11 @@ def scan(
         raise typer.Exit(1)
 
 
-def _run_ai_triage(result: ScanResult, paths: list[Path], ai_triage: bool, model: str) -> None:
+def _run_ai_triage(result: ScanResult, paths: list[Path], ai_triage: bool, model: str, deep_triage: bool = False) -> None:
     from vulnhunter.onboarding import load_config
 
     cfg = load_config()
-    should_triage = ai_triage or cfg.get("ai_triage_enabled", False)
+    should_triage = ai_triage or deep_triage or cfg.get("ai_triage_enabled", False)
 
     if not should_triage:
         return
@@ -318,7 +323,18 @@ def _run_ai_triage(result: ScanResult, paths: list[Path], ai_triage: bool, model
 
     from vulnhunter.ai.triage import TriageEngine
 
-    engine = TriageEngine(model=effective_model, ollama_url=ollama_url, language=lang)
+    engine = TriageEngine(
+        model=effective_model,
+        ollama_url=ollama_url,
+        language=lang,
+        deep_triage=deep_triage,
+    )
+
+    if deep_triage and not engine.semgrep_available():
+        console.print(
+            "[bold yellow]Warning:[/] Semgrep not found. Install with: [bold]pip install semgrep[/bold]\n"
+            "Falling back to AI-only triage.",
+        )
 
     if not engine.is_available():
         msg_unavail = {
@@ -338,6 +354,7 @@ def _run_ai_triage(result: ScanResult, paths: list[Path], ai_triage: bool, model
             "severity": v.severity.value,
             "summary": v.summary,
             "ecosystem": v.ecosystem.value if v.ecosystem else "",
+            "fixed_version": v.fixed_version or "",
         }
         for v in result.vulnerabilities
     ]
