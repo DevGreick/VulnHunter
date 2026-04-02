@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VulnHunter — Offline Vulnerability Scanner</title>
+    <title>VulnHunter | Offline Vulnerability Scanner</title>
     <meta name="description" content="Scan your dependencies for known vulnerabilities without sending data anywhere. AI-powered triage with local LLMs.">
     <meta name="theme-color" content="#00e5ff">
-    <meta property="og:title" content="VulnHunter — Offline Vulnerability Scanner">
+    <meta property="og:title" content="VulnHunter | Offline Vulnerability Scanner">
     <meta property="og:description" content="Scan dependencies for known CVEs offline. AI triage via Ollama. Multi-ecosystem support.">
     <meta property="og:image" content="assets/logo.png">
     <meta property="og:type" content="website">
@@ -94,7 +94,7 @@
                         <svg viewBox="0 0 24 24" width="32" height="32"><path fill="currentColor" d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/></svg>
                     </div>
                     <h3 data-i18n="f_multi_title">Multi-Ecosystem</h3>
-                    <p data-i18n="f_multi_desc">Python, Node.js, Go, Rust, Java, PHP, Ruby — VulnHunter parses lockfiles, manifests, and dependency trees across 7 ecosystems and 15+ file formats.</p>
+                    <p data-i18n="f_multi_desc">Python, Node.js, Go, Rust, Java, PHP, Ruby. VulnHunter parses lockfiles, manifests, and dependency trees across 7 ecosystems and 15+ file formats.</p>
                 </div>
                 <div class="feature-card reveal">
                     <div class="feature-icon">
@@ -108,7 +108,7 @@
                         <svg viewBox="0 0 24 24" width="32" height="32"><path fill="currentColor" d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
                     </div>
                     <h3 data-i18n="f_secure_title">Secure by Design</h3>
-                    <p data-i18n="f_secure_desc">API keys stored in your OS keyring — never in plaintext. No secrets in logs, no data exfiltration. Built by a cybersecurity professional.</p>
+                    <p data-i18n="f_secure_desc">API keys stored in your OS keyring, never in plaintext. No secrets in logs, no data exfiltration. Built by a cybersecurity professional.</p>
                 </div>
                 <div class="feature-card reveal">
                     <div class="feature-icon">
@@ -263,7 +263,7 @@
                 <div class="example-item reveal">
                     <div class="example-info">
                         <h3 data-i18n="ex_config_title">Configuration</h3>
-                        <p data-i18n="ex_config_desc">Manage settings, API keys, and AI preferences. NVD keys are stored securely in your OS keyring — never in plaintext config files.</p>
+                        <p data-i18n="ex_config_desc">Manage settings, API keys, and AI preferences. NVD keys are stored securely in your OS keyring, never in plaintext config files.</p>
                     </div>
                     <div class="terminal terminal-sm">
                         <div class="terminal-header">
@@ -454,7 +454,7 @@
                         <div class="term-line">&nbsp;</div>
                         <div class="term-line"><span class="term-output term-cyan">━━━ AI Triage Results ━━━</span></div>
                         <div class="term-line">&nbsp;</div>
-                        <div class="term-line"><span class="term-output term-red">■ CVE-2024-3651 — idna 3.6</span></div>
+                        <div class="term-line"><span class="term-output term-red">■ CVE-2024-3651 | idna 3.6</span></div>
                         <div class="term-line"><span class="term-output term-white">  Severity: HIGH → </span><span class="term-output term-red">HIGH (confirmed)</span></div>
                         <div class="term-line"><span class="term-output term-muted">  The application processes user-supplied URLs in</span></div>
                         <div class="term-line"><span class="term-output term-muted">  api/handlers.py:42 using idna.encode() directly.</span></div>
@@ -462,13 +462,13 @@
                         <div class="term-line"><span class="term-output term-muted">  domain names.</span></div>
                         <div class="term-line"><span class="term-output term-green">  Fix: upgrade idna to ≥3.7</span></div>
                         <div class="term-line">&nbsp;</div>
-                        <div class="term-line"><span class="term-output term-yellow">■ CVE-2024-1234 — requests 2.31.0</span></div>
+                        <div class="term-line"><span class="term-output term-yellow">■ CVE-2024-1234 | requests 2.31.0</span></div>
                         <div class="term-line"><span class="term-output term-white">  Severity: CRITICAL → </span><span class="term-output term-blue">LOW (not reachable)</span></div>
                         <div class="term-line"><span class="term-output term-muted">  The vulnerable code path requires SOCKS proxy</span></div>
                         <div class="term-line"><span class="term-output term-muted">  usage. No SOCKS configuration found in codebase.</span></div>
                         <div class="term-line"><span class="term-output term-muted">  Risk is minimal in current context.</span></div>
                         <div class="term-line">&nbsp;</div>
-                        <div class="term-line"><span class="term-output term-yellow">■ CVE-2024-5678 — flask 2.3.2</span></div>
+                        <div class="term-line"><span class="term-output term-yellow">■ CVE-2024-5678 | flask 2.3.2</span></div>
                         <div class="term-line"><span class="term-output term-white">  Severity: MEDIUM → </span><span class="term-output term-yellow">MEDIUM (conditional)</span></div>
                         <div class="term-line"><span class="term-output term-muted">  Debug mode detected in config.py:8. Vulnerability</span></div>
                         <div class="term-line"><span class="term-output term-muted">  is exploitable only if DEBUG=True in production.</span></div>
@@ -662,9 +662,9 @@ uv pip install -e .">Copy</button>
             <div class="prereqs reveal">
                 <h3 data-i18n="prereqs_title">Prerequisites</h3>
                 <ul>
-                    <li data-i18n="prereq_python_html"><strong>Python 3.8+</strong> — Required</li>
-                    <li data-i18n="prereq_ollama_html"><strong>Ollama</strong> — Optional, for AI triage. <a href="https://ollama.com/download" target="_blank" rel="noopener">Download here</a></li>
-                    <li data-i18n="prereq_nvd_html"><strong>NVD API Key</strong> — Optional, speeds up database updates. <a href="https://nvd.nist.gov/developers/request-an-api-key" target="_blank" rel="noopener">Free key</a></li>
+                    <li data-i18n="prereq_python_html"><strong>Python 3.8+</strong> (Required)</li>
+                    <li data-i18n="prereq_ollama_html"><strong>Ollama</strong> (Optional) For AI triage. <a href="https://ollama.com/download" target="_blank" rel="noopener">Download here</a></li>
+                    <li data-i18n="prereq_nvd_html"><strong>NVD API Key</strong> (Optional) Speeds up database updates. <a href="https://nvd.nist.gov/developers/request-an-api-key" target="_blank" rel="noopener">Free key</a></li>
                 </ul>
             </div>
         </div>

@@ -33,7 +33,7 @@ db.close()
 from vulnhunter.models import Severity
 ```
 
-`Severity(str, Enum)` — Vulnerability severity levels.
+`Severity(str, Enum)`: Vulnerability severity levels.
 
 | Value | Description |
 |---|---|
@@ -49,7 +49,7 @@ from vulnhunter.models import Severity
 from vulnhunter.models import Ecosystem
 ```
 
-`Ecosystem(str, Enum)` — Supported package ecosystems.
+`Ecosystem(str, Enum)`: Supported package ecosystems.
 
 | Value | Ecosystem |
 |---|---|
@@ -104,9 +104,9 @@ Vulnerability(
 |---|---|---|---|
 | `vuln_id` | `str` | `"N/A"` | CVE or advisory identifier |
 | `source` | `str` | `"unknown"` | Data source (e.g. `"OSV"`, `"OSV+NVD"`) |
-| `name` | `str` | — | Affected package name |
-| `version` | `str` | — | Affected version |
-| `ecosystem` | `Ecosystem` | — | Package ecosystem |
+| `name` | `str` | *required* | Affected package name |
+| `version` | `str` | *required* | Affected version |
+| `ecosystem` | `Ecosystem` | *required* | Package ecosystem |
 | `severity` | `Severity` | `UNKNOWN` | Resolved severity level |
 | `summary` | `str` | `"No summary provided"` | Vulnerability description |
 | `fixed_version` | `str \| None` | `None` | Version that fixes the issue |
@@ -147,8 +147,8 @@ Scans a list of dependencies against the local vulnerability database.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `db` | `VulnDB` | — | Database instance |
-| `dependencies` | `list[Dependency]` | — | Dependencies to scan |
+| `db` | `VulnDB` | *required* | Database instance |
+| `dependencies` | `list[Dependency]` | *required* | Dependencies to scan |
 | `ignore_file` | `Path \| None` | `None` | Path to `.vulnignore` file. Defaults to `.vulnignore` in CWD |
 
 **Returns:** `ScanResult` with matched vulnerabilities sorted by severity (CRITICAL first).
@@ -167,7 +167,7 @@ result = analyze(db, deps, ignore_file=Path(".vulnignore"))
 
 print(f"Found {result.total_vulnerabilities} vulnerabilities")
 for v in result.vulnerabilities:
-    print(f"  {v.vuln_id}: {v.severity.value} — {v.summary}")
+    print(f"  {v.vuln_id}: {v.severity.value} - {v.summary}")
 
 db.close()
 ```
@@ -190,13 +190,13 @@ Resolves UNKNOWN severity using NVD cross-reference, CWE mapping, and keyword an
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `db` | `VulnDB` | — | Database instance for NVD lookups |
-| `vuln_id` | `str` | — | CVE or advisory identifier |
-| `current_severity` | `str` | — | Current severity string |
-| `summary` | `str` | — | Vulnerability description text |
+| `db` | `VulnDB` | *required* | Database instance for NVD lookups |
+| `vuln_id` | `str` | *required* | CVE or advisory identifier |
+| `current_severity` | `str` | *required* | Current severity string |
+| `summary` | `str` | *required* | Vulnerability description text |
 | `original_source` | `str` | `"OSV"` | Original data source name |
 
-**Returns:** `tuple[str, bool, str]` — `(severity, is_estimated, source)`.
+**Returns:** `tuple[str, bool, str]` = `(severity, is_estimated, source)`.
 
 - `severity`: Resolved severity string (e.g. `"HIGH"`)
 - `is_estimated`: `True` if severity was inferred from CWE/keywords
@@ -344,7 +344,7 @@ vulns = [
 results = engine.triage_all(vulns, Path("."))
 for item in results:
     triage = item["triage"]
-    print(f"{item['vuln']['id']}: {triage['real_risk']} — {triage['analysis']}")
+    print(f"{item['vuln']['id']}: {triage['real_risk']} - {triage['analysis']}")
 ```
 
 ### `TriageResponse`
@@ -358,8 +358,8 @@ Pydantic model for validated LLM triage output.
 | Field | Type | Pattern | Description |
 |---|---|---|---|
 | `real_risk` | `str` | `CRITICAL\|HIGH\|MEDIUM\|LOW\|IRRELEVANT\|UNKNOWN` | Contextual risk assessment |
-| `analysis` | `str` | — | Brief explanation |
-| `recommendation` | `str` | — | Remediation advice |
+| `analysis` | `str` | *required* | Brief explanation |
+| `recommendation` | `str` | *required* | Remediation advice |
 
 ### `CodeAnalyzer`
 
@@ -453,8 +453,8 @@ Export scan results to a styled Excel workbook with Summary, Vulnerabilities, an
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `result` | `ScanResult` | — | Scan results to export |
-| `output_path` | `Path` | — | Output `.xlsx` file path |
+| `result` | `ScanResult` | *required* | Scan results to export |
+| `output_path` | `Path` | *required* | Output `.xlsx` file path |
 | `base_dir` | `Path \| None` | `None` | Base directory for path traversal validation |
 
 **Example:**
@@ -483,11 +483,11 @@ vulnhunter scan <paths> [OPTIONS]
 | `--format` | `-f` | `table` | Output format: `table`, `json`, `sarif`, `xlsx` |
 | `--output` | `-o` | auto | Save report to file |
 | `--severity` | `-s` | all | Minimum severity filter: `critical`, `high`, `medium`, `low` |
-| `--ignore-file` | — | `.vulnignore` | CVE ignore list file |
-| `--db` | — | default | Custom database path |
-| `--ai-triage` | — | `false` | Enable AI-powered triage via Ollama |
-| `--model` | — | config | AI model name (e.g. `mistral`, `llama3:8b`) |
-| `--deep-triage` | — | `false` | Enable Semgrep + AI evidence-based triage |
+| `--ignore-file` | | `.vulnignore` | CVE ignore list file |
+| `--db` | | default | Custom database path |
+| `--ai-triage` | | `false` | Enable AI-powered triage via Ollama |
+| `--model` | | config | AI model name (e.g. `mistral`, `llama3:8b`) |
+| `--deep-triage` | | `false` | Enable Semgrep + AI evidence-based triage |
 | `--verbose` | `-v` | `false` | Show detailed logs |
 
 ### `vulnhunter db update`
@@ -499,9 +499,9 @@ vulnhunter db update [OPTIONS]
 | Option | Short | Default | Description |
 |---|---|---|---|
 | `--ecosystem` | `-e` | auto | Specific ecosystems to update |
-| `--all` | — | `false` | Download all ecosystems |
-| `--source` | — | `osv` | Data source: `osv`, `nvd`, or `both` |
-| `--nvd-api-key` | — | env/keyring | NVD API key |
+| `--all` | | `false` | Download all ecosystems |
+| `--source` | | `osv` | Data source: `osv`, `nvd`, or `both` |
+| `--nvd-api-key` | | env/keyring | NVD API key |
 
 ### `vulnhunter db download`
 
@@ -565,7 +565,7 @@ if engine.is_available() and result.vulnerabilities:
     triage_results = engine.triage_all(vuln_dicts, Path("."))
     for item in triage_results:
         t = item["triage"]
-        print(f"{item['vuln']['id']}: {t['real_risk']} — {t['analysis']}")
+        print(f"{item['vuln']['id']}: {t['real_risk']} - {t['analysis']}")
 
 db.close()
 ```

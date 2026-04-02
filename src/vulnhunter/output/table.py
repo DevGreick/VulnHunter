@@ -26,14 +26,19 @@ def _build_summary(result: ScanResult) -> str:
         f"[bold]Dependencies scanned:[/bold] {result.total_dependencies}",
         f"[bold]Vulnerabilities found:[/bold] {result.total_vulnerabilities}",
         f"[bold]Ignored:[/bold] {result.total_ignored}",
-        "",
     ]
+
+    sev_lines: list[str] = []
 
     for sev in Severity:
         count = severity_counts.get(sev, 0)
         if count > 0:
             style = SEVERITY_STYLE[sev]
-            lines.append(f"  [{style}]{sev.value}[/{style}]: {count}")
+            sev_lines.append(f"  [{style}]{sev.value}[/{style}]: {count}")
+
+    if sev_lines:
+        lines.append("")
+        lines.extend(sev_lines)
 
     return "\n".join(lines)
 

@@ -6,7 +6,7 @@
 <p align="center">
   <strong>Your dependencies have secrets. VulnHunter finds them.</strong>
   <br>
-  Offline vulnerability scanner with AI-powered triage — no cloud, no API calls, no data leaves your machine.
+  Offline vulnerability scanner with AI-powered triage. No cloud, no API calls, no data leaves your machine.
 </p>
 
 <p align="center">
@@ -34,10 +34,10 @@
 
 Most vulnerability scanners send your dependency tree to a cloud service. VulnHunter does everything locally:
 
-- **Scans 7 ecosystems** — Python, Node.js, Go, Rust, Java, PHP, Ruby
-- **AI triage via Ollama** — a local LLM reads your code and tells you which CVEs are actually exploitable in your context
-- **Zero network after setup** — works in air-gapped, government, and banking environments
-- **Secrets stay safe** — API keys stored in your OS keyring, never in config files
+- **Scans 7 ecosystems:** Python, Node.js, Go, Rust, Java, PHP, Ruby
+- **AI triage via Ollama:** a local LLM reads your code and tells you which CVEs are actually exploitable in your context
+- **Zero network after setup:** works in air-gapped, government, and banking environments
+- **Secrets stay safe:** API keys stored in your OS keyring, never in config files
 
 ---
 
@@ -137,14 +137,14 @@ vulnhunter db info        # Check database stats
 
 ### Output Formats
 
-**Table** — colored terminal output with severity grouping (default)
+**Table:** colored terminal output with severity grouping (default)
 
-**JSON** — machine-readable report
+**JSON:** machine-readable report
 ```bash
 vulnhunter scan . -f json -o report.json
 ```
 
-**SARIF 2.1.0** — GitHub Code Scanning, VS Code SARIF Viewer
+**SARIF 2.1.0:** GitHub Code Scanning, VS Code SARIF Viewer
 ```bash
 vulnhunter scan . -f sarif -o results.sarif
 ```
@@ -223,20 +223,20 @@ CVE-2023-0003 guzzlehttp/guzzle
 
 ### Security
 
-- API keys stored in OS keyring via `keyring` — never in plaintext
-- No data exfiltration — all scanning and AI analysis happens locally
+- API keys stored in OS keyring via `keyring`, never in plaintext
+- No data exfiltration. All scanning and AI analysis happens locally
 - OWASP best practices in every module
 - Input validation, parameterized queries, no `eval`/`exec`
-- Exit code `1` on vulnerabilities found — use as CI gate
+- Exit code `1` on vulnerabilities found. Use as CI gate
 
 ---
 
 ### Known Limitations
 
-- Accuracy depends on OSV/NVD data freshness — run `db update` regularly
+- Accuracy depends on OSV/NVD data freshness. Run `db update` regularly
 - CPE matching (NVD) can produce false positives for uncommon package names
-- AI triage is suggestive — always validate critical findings manually
-- Static analysis only — does not execute code or analyze runtime behavior
+- AI triage is suggestive. Always validate critical findings manually
+- Static analysis only. Does not execute code or analyze runtime behavior
 
 ---
 
@@ -245,17 +245,17 @@ CVE-2023-0003 guzzlehttp/guzzle
 <p align="center">
   <strong>Suas dependências têm segredos. O VulnHunter encontra.</strong>
   <br>
-  Scanner offline de vulnerabilidades com triagem por IA — sem cloud, sem chamadas de API, nenhum dado sai da sua máquina.
+  Scanner offline de vulnerabilidades com triagem por IA. Sem cloud, sem chamadas de API, nenhum dado sai da sua máquina.
 </p>
 
 ### O que torna o VulnHunter diferente
 
 A maioria dos scanners de vulnerabilidade envia sua árvore de dependências para um serviço na nuvem. O VulnHunter faz tudo localmente:
 
-- **Escaneia 7 ecossistemas** — Python, Node.js, Go, Rust, Java, PHP, Ruby
-- **Triagem com IA via Ollama** — uma LLM local lê seu código e diz quais CVEs são realmente exploráveis no seu contexto
-- **Zero rede após o setup** — funciona em ambientes air-gapped, governo e bancos
-- **Segredos protegidos** — chaves de API armazenadas no keyring do sistema, nunca em arquivos de config
+- **Escaneia 7 ecossistemas:** Python, Node.js, Go, Rust, Java, PHP, Ruby
+- **Triagem com IA via Ollama:** uma LLM local lê seu código e diz quais CVEs são realmente exploráveis no seu contexto
+- **Zero rede após o setup:** funciona em ambientes air-gapped, governo e bancos
+- **Segredos protegidos:** chaves de API armazenadas no keyring do sistema, nunca em arquivos de config
 
 ### Início Rápido
 
@@ -334,14 +334,14 @@ vulnhunter db info        # Ver estatísticas do banco
 
 ### Formatos de Saída
 
-**Table** — saída colorida no terminal com agrupamento por severidade (padrão)
+**Table:** saída colorida no terminal com agrupamento por severidade (padrão)
 
-**JSON** — relatório legível por máquina
+**JSON:** relatório legível por máquina
 ```bash
 vulnhunter scan . -f json -o report.json
 ```
 
-**SARIF 2.1.0** — GitHub Code Scanning, VS Code SARIF Viewer
+**SARIF 2.1.0:** GitHub Code Scanning, VS Code SARIF Viewer
 ```bash
 vulnhunter scan . -f sarif -o results.sarif
 ```
@@ -412,18 +412,18 @@ CVE-2023-0003 guzzlehttp/guzzle
 
 ### Segurança
 
-- Chaves de API no keyring do sistema via `keyring` — nunca em texto puro
-- Zero exfiltração de dados — todo scan e análise de IA acontece localmente
+- Chaves de API no keyring do sistema via `keyring`, nunca em texto puro
+- Zero exfiltração de dados. Todo scan e análise de IA acontece localmente
 - Boas práticas OWASP em todos os módulos
 - Validação de input, queries parametrizadas, sem `eval`/`exec`
-- Exit code `1` quando vulnerabilidades são encontradas — use como gate de CI
+- Exit code `1` quando vulnerabilidades são encontradas. Use como gate de CI
 
 ### Limitações Conhecidas
 
-- Precisão depende da atualização dos dados OSV/NVD — execute `db update` regularmente
+- Precisão depende da atualização dos dados OSV/NVD. Execute `db update` regularmente
 - Matching por CPE (NVD) pode gerar falsos positivos para pacotes incomuns
-- Triagem com IA é sugestiva — sempre valide findings críticos manualmente
-- Análise estática apenas — não executa código nem analisa comportamento em runtime
+- Triagem com IA é sugestiva. Sempre valide findings críticos manualmente
+- Análise estática apenas. Não executa código nem analisa comportamento em runtime
 
 ---
 
