@@ -44,7 +44,10 @@ Most vulnerability scanners send your dependency tree to a cloud service. VulnHu
 ### Quick Start
 
 ```bash
-# Install
+# Install (global, recommended)
+uv tool install vulnhunter
+
+# Or via pip
 pip install vulnhunter
 
 # Interactive setup (detects Ollama, configures AI, sets language)
@@ -57,7 +60,9 @@ vulnhunter scan .
 vulnhunter scan . --ai-triage
 ```
 
-That's it. Three commands from zero to vulnerability report.
+That's it. Works from any directory, no virtual environment needed.
+
+> **Note:** `uv tool install` makes `vulnhunter` available globally as a system command. To update after a new release: `uv tool install vulnhunter --force`
 
 ---
 
@@ -255,7 +260,10 @@ A maioria dos scanners de vulnerabilidade envia sua árvore de dependências par
 ### Início Rápido
 
 ```bash
-# Instalar
+# Instalar (global, recomendado)
+uv tool install vulnhunter
+
+# Ou via pip
 pip install vulnhunter
 
 # Setup interativo (detecta Ollama, configura IA, define idioma)
@@ -268,7 +276,9 @@ vulnhunter scan .
 vulnhunter scan . --ai-triage
 ```
 
-Só isso. Três comandos do zero ao relatório de vulnerabilidades.
+Funciona de qualquer diretório, sem virtual environment.
+
+> **Nota:** `uv tool install` torna o `vulnhunter` disponível globalmente como comando do sistema. Para atualizar: `uv tool install vulnhunter --force`
 
 ### Triagem com IA
 
