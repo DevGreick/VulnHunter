@@ -26,7 +26,7 @@ jobs:
         run: vulnhunter db update --all --source osv --db vulnhunter.db
 
       - name: Build NVD database
-        if: env.NVD_API_KEY != ''
+        if: ${{ secrets.NVD_API_KEY != '' }}
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: vulnhunter db update --source nvd --nvd-api-key "$NVD_API_KEY" --db vulnhunter.db
