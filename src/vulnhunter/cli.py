@@ -381,22 +381,15 @@ def _run_ai_triage(result: ScanResult, paths: list[Path], ai_triage: bool, model
 
         triage_results = engine.triage_all(vuln_dicts, project_dir, callback=_progress_cb)
 
-    from rich.table import Table
+    from rich.panel import Panel
+    from rich.text import Text
 
     title = "Resultados da Triagem IA" if lang == "pt" else "AI Triage Results"
-    col_risk = "Risco Real" if lang == "pt" else "Real Risk"
-    col_analysis = "Analise" if lang == "pt" else "Analysis"
-    col_action = "Acao" if lang == "pt" else "Action"
+    severity_label = "Severidade" if lang == "pt" else "Severity"
+    fix_label = "Correcao" if lang == "pt" else "Fix"
+    disclaimer_label = "Aviso" if lang == "pt" else "Disclaimer"
 
-    table = Table(title=title, show_lines=True)
-    table.add_column("CVE", style="bold", width=18)
-    table.add_column("Package", width=15)
-    table.add_column("CVSS", width=10)
-    table.add_column(col_risk, width=12)
-    table.add_column(col_analysis, width=40)
-    table.add_column(col_action, width=30)
-
-    risk_colors = {
+    risk_colors: dict[str, str] = {
         "CRITICAL": "bold red",
         "HIGH": "red",
         "MEDIUM": "yellow",
@@ -405,21 +398,66 @@ def _run_ai_triage(result: ScanResult, paths: list[Path], ai_triage: bool, model
         "UNKNOWN": "dim",
     }
 
+    risk_qualifiers: dict[str, dict[str, str]] = {
+        "CRITICAL": {"en": "confirmed", "pt": "confirmado"},
+        "HIGH": {"en": "confirmed", "pt": "confirmado"},
+        "MEDIUM": {"en": "conditional", "pt": "condicional"},
+        "LOW": {"en": "not reachable", "pt": "nao alcancavel"},
+        "IRRELEVANT": {"en": "not reachable", "pt": "nao alcancavel"},
+        "UNKNOWN": {"en": "requires review", "pt": "requer revisao"},
+    }
+
+    console.print(f"\n[bold cyan]── {title} ──[/bold cyan]\n")
+
+    from vulnhunter.ai.triage import DISCLAIMER
+
     for tr in triage_results:
         vuln = tr["vuln"]
         triage = tr["triage"]
         risk = triage.get("real_risk", "UNKNOWN")
         color = risk_colors.get(risk, "dim")
-        table.add_row(
-            vuln.get("id", ""),
-            vuln.get("package", ""),
-            vuln.get("severity", ""),
-            f"[{color}]{risk}[/{color}]",
-            triage.get("analysis", ""),
-            triage.get("recommendation", ""),
-        )
+        qualifier = risk_qualifiers.get(risk, {}).get(lang, "")
+        original_sev = vuln.get("severity", "UNKNOWN")
+        analysis = triage.get("analysis", "")
+        recommendation = triage.get("recommendation", "")
+        evidence = triage.get("evidence", "llm")
 
-    console.print(table)
+        vuln_id = vuln.get("id", "N/A")
+        pkg = vuln.get("package", "unknown")
+        ver = vuln.get("version", "")
+
+        header = f"[bold]{vuln_id}[/bold] — {pkg} {ver}"
+
+        body = Text()
+        body.append(f"    {severity_label}: ", style="bold")
+        body.append(f"{original_sev}", style="bold")
+        body.append(" → ", style="dim")
+        body.append(f"{risk} ({qualifier})", style=color)
+        body.append("\n")
+
+        if evidence == "semgrep+llm":
+            body.append("    Evidence: ", style="bold")
+            body.append("Semgrep + LLM", style="cyan")
+            body.append("\n")
+
+        if analysis:
+            body.append(f"    {analysis}\n", style="")
+
+        if recommendation:
+            body.append(f"    {fix_label}: ", style="bold green")
+            body.append(f"{recommendation}\n", style="green")
+
+        border_color = color.replace("bold ", "")
+        panel = Panel(
+            body,
+            title=header,
+            title_align="left",
+            border_style=border_color,
+            padding=(0, 1),
+        )
+        console.print(panel)
+
+    console.print(f"\n[dim italic]{DISCLAIMER}[/dim italic]\n")
 
 
 @db_app.command("update")
