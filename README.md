@@ -2,7 +2,6 @@
   <img src="logo.png" alt="VulnHunter" width="180">
 </p>
 
-<h1 align="center">VulnHunter</h1>
 
 <p align="center">
   <strong>Your dependencies have secrets. VulnHunter finds them.</strong>
