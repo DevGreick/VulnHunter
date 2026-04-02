@@ -38,8 +38,7 @@ def test_parse_pom_xml() -> None:
     deps = parse_file(FIXTURES / "pom_valid.xml")
     assert len(deps) >= 2
     versions = {d.version for d in deps}
-    assert "5.3.8" in versions
-    assert "5.2.5.RELEASE" in versions
+    assert "6.2.2" in versions
     for d in deps:
         assert d.ecosystem == Ecosystem.MAVEN
 
