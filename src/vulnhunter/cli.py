@@ -32,6 +32,9 @@ app = typer.Typer(
 db_app = typer.Typer(help="Manage the local vulnerability database.")
 app.add_typer(db_app, name="db")
 
+config_app = typer.Typer(help="View and manage VulnHunter settings.")
+app.add_typer(config_app, name="config")
+
 console = Console(stderr=True)
 logger = logging.getLogger("vulnhunter.cli")
 
@@ -109,14 +112,28 @@ def init() -> None:
     run_wizard()
 
 
-@app.command(help="Show or change current settings.")
-def config() -> None:
+def _nvd_key_exists() -> bool:
+    try:
+        import keyring
+
+        val: str | None = keyring.get_password("vulnhunter", "nvd_api_key")
+        return val is not None and len(val) > 0
+    except Exception:
+        return False
+
+
+@config_app.callback(invoke_without_command=True)
+def config_show(ctx: typer.Context) -> None:
+    if ctx.invoked_subcommand is not None:
+        return
     from vulnhunter.onboarding import load_config, run_wizard, show_banner
 
     cfg = load_config()
     show_banner()
 
     from rich.table import Table
+
+    nvd_status = "[green]✓ saved[/green]" if _nvd_key_exists() else "[yellow]not set[/yellow]"
 
     table = Table(title="Current Configuration")
     table.add_column("Setting", style="bold")
@@ -125,10 +142,50 @@ def config() -> None:
     table.add_row("Model", cfg.get("model", "mistral"))
     table.add_row("Ollama URL", cfg.get("ollama_url", "http://localhost:11434"))
     table.add_row("Language", cfg.get("language", "en"))
+    table.add_row("NVD API Key", nvd_status)
     console.print(table)
 
     if typer.confirm("\nReconfigure?", default=False):
         run_wizard()
+
+
+@config_app.command(name="set-nvd-key", help="Save or replace your NVD API key in the system keyring.")
+def config_set_nvd_key() -> None:
+    from vulnhunter.onboarding import _detect_language, _t
+
+    lang: str = _detect_language()
+    console.print(_t("nvd_get_key", lang))
+    nvd_key: str = typer.prompt(_t("nvd_key_prompt", lang), type=str, hide_input=True)
+    if not nvd_key.strip():
+        console.print("[yellow]Empty key, nothing saved.[/yellow]")
+        return
+    try:
+        import keyring
+
+        keyring.set_password("vulnhunter", "nvd_api_key", nvd_key.strip())
+        console.print(f"[green]{_t('nvd_saved', lang)}[/green]")
+    except Exception:
+        console.print(f"[yellow]{_t('nvd_save_failed', lang)}[/yellow]")
+
+
+@config_app.command(name="remove-nvd-key", help="Remove the NVD API key from the system keyring.")
+def config_remove_nvd_key() -> None:
+    from vulnhunter.onboarding import _detect_language
+
+    lang: str = _detect_language()
+    try:
+        import keyring
+
+        keyring.delete_password("vulnhunter", "nvd_api_key")
+        if lang == "pt":
+            console.print("[green]API key do NVD removida do keyring.[/green]")
+        else:
+            console.print("[green]NVD API key removed from keyring.[/green]")
+    except Exception:
+        if lang == "pt":
+            console.print("[yellow]Nenhuma key encontrada no keyring.[/yellow]")
+        else:
+            console.print("[yellow]No key found in keyring.[/yellow]")
 
 
 @app.command(

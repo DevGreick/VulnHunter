@@ -106,10 +106,6 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Still not reachable. Continuing without AI.",
         "pt": "Ainda nao acessivel. Continuando sem IA.",
     },
-    "installed_models": {
-        "en": "Installed models:",
-        "pt": "Modelos instalados:",
-    },
     "recommended_models": {
         "en": "Recommended Models",
         "pt": "Modelos Recomendados",
@@ -119,20 +115,20 @@ _STRINGS: dict[str, dict[str, str]] = {
         "pt": "Ativar triagem de vulnerabilidades com IA?",
     },
     "select_model": {
-        "en": "Select model",
-        "pt": "Escolha o modelo",
+        "en": "Select model (number)",
+        "pt": "Escolha o modelo (numero)",
     },
-    "model_not_recommended": {
-        "en": "is not in the recommended list, but will be used if available in Ollama.",
-        "pt": "nao esta na lista recomendada, mas sera usado se disponivel no Ollama.",
+    "invalid_choice": {
+        "en": "Invalid choice. Pick a number from the list.",
+        "pt": "Opcao invalida. Escolha um numero da lista.",
     },
-    "model_not_installed": {
-        "en": "is not installed in Ollama.",
-        "pt": "nao esta instalado no Ollama.",
+    "custom_model": {
+        "en": "Custom model",
+        "pt": "Modelo customizado",
     },
-    "model_pull": {
-        "en": "Pull it with:",
-        "pt": "Baixe com:",
+    "model_not_installed_pull": {
+        "en": "not installed — pull with: [bold]ollama pull {model}[/bold]",
+        "pt": "nao instalado — baixe com: [bold]ollama pull {model}[/bold]",
     },
     "db_not_found": {
         "en": "Vulnerability database not found.",
@@ -264,7 +260,9 @@ def show_banner() -> None:
     console.print(BANNER)
 
 
-def detect_ollama(ollama_url: str = "http://localhost:11434") -> tuple[bool, list[str]]:
+def detect_ollama(
+    ollama_url: str = "http://localhost:11434",
+) -> tuple[bool, list[dict[str, str]]]:
     try:
         resp: requests.Response = requests.get(
             f"{ollama_url}/api/tags",
@@ -272,9 +270,14 @@ def detect_ollama(ollama_url: str = "http://localhost:11434") -> tuple[bool, lis
         )
         resp.raise_for_status()
         data: dict[str, Any] = resp.json()
-        models: list[str] = [
-            m.get("name", "") for m in data.get("models", []) if m.get("name")
-        ]
+        models: list[dict[str, str]] = []
+        for m in data.get("models", []):
+            name: str = m.get("name", "")
+            if not name:
+                continue
+            details: dict[str, Any] = m.get("details", {})
+            param_size: str = details.get("parameter_size", "")
+            models.append({"name": name, "params": param_size})
         return True, models
     except (requests.RequestException, ValueError, KeyError):
         return False, []
@@ -351,37 +354,88 @@ def _show_dep_tools(lang: str) -> None:
                     console.print(f"  [red]{_t('dep_tools_install_failed', lang)} {pkg}[/red]")
 
 
-def _show_model_table(installed_models: list[str], lang: str) -> None:
+def _build_model_menu(
+    installed_models: list[dict[str, str]], lang: str,
+) -> list[dict[str, Any]]:
+    menu: list[dict[str, Any]] = []
+    added_names: set[str] = set()
+
+    for m in installed_models:
+        base_name: str = m["name"].split(":")[0]
+        params: str = m["params"] or "?"
+        tier_match: list[dict[str, str]] = [
+            t for t in MODEL_TIERS if t["name"] == base_name
+        ]
+        if tier_match:
+            t = tier_match[0]
+            desc_key = f"desc_{lang}" if f"desc_{lang}" in t else "desc_en"
+            menu.append({
+                "name": m["name"], "params": params,
+                "desc": t[desc_key], "installed": True,
+            })
+        else:
+            menu.append({
+                "name": m["name"], "params": params,
+                "desc": _t("custom_model", lang), "installed": True,
+            })
+        added_names.add(base_name)
+
+    for t in MODEL_TIERS:
+        if t["name"] not in added_names:
+            desc_key = f"desc_{lang}" if f"desc_{lang}" in t else "desc_en"
+            menu.append({
+                "name": t["name"], "params": t["params"],
+                "desc": t[desc_key], "installed": False,
+            })
+
+    return menu
+
+
+def _show_model_menu(
+    installed_models: list[dict[str, str]], lang: str,
+) -> str:
+    menu: list[dict[str, Any]] = _build_model_menu(installed_models, lang)
+
     table = Table(title=_t("recommended_models", lang))
-    table.add_column("Tier", style="bold")
+    table.add_column("#", style="bold", justify="right")
     table.add_column("Model", style="cyan")
-    table.add_column("Parameters")
+    table.add_column("Params")
     table.add_column("Description")
     table.add_column("Status")
 
-    for tier_info in MODEL_TIERS:
-        installed: bool = any(
-            tier_info["name"] in m for m in installed_models
-        )
-        status: str = "[green]installed[/green]" if installed else "[yellow]not installed[/yellow]"
-        desc_key: str = f"desc_{lang}" if f"desc_{lang}" in tier_info else "desc_en"
+    for idx, item in enumerate(menu, 1):
+        status = "[green]✓ installed[/green]" if item["installed"] else "[yellow]not installed[/yellow]"
         table.add_row(
-            tier_info["tier"],
-            tier_info["name"],
-            tier_info["params"],
-            tier_info[desc_key],
-            status,
+            str(idx), item["name"], item["params"], item["desc"], status,
         )
 
     console.print(table)
 
+    default_idx: int = 1
+    for idx, item in enumerate(menu, 1):
+        if item["installed"]:
+            default_idx = idx
+            break
 
-def _show_installed_models(models: list[str], lang: str) -> None:
-    if not models:
-        return
-    console.print(f"\n[bold]{_t('installed_models', lang)}[/bold]")
-    for model in models:
-        console.print(f"  - {model}")
+    while True:
+        raw: str = typer.prompt(
+            _t("select_model", lang),
+            default=str(default_idx),
+            type=str,
+        )
+        try:
+            choice: int = int(raw)
+            if 1 <= choice <= len(menu):
+                selected = menu[choice - 1]
+                if not selected["installed"]:
+                    msg = _t("model_not_installed_pull", lang).format(model=selected["name"])
+                    console.print(f"\n[yellow]{msg}[/yellow]\n")
+                return selected["name"]
+        except ValueError:
+            pass
+        console.print(f"[red]{_t('invalid_choice', lang)}[/red]")
+
+
 
 
 def run_wizard() -> dict[str, Any]:
@@ -429,41 +483,17 @@ def run_wizard() -> dict[str, Any]:
         selected_model: str = config["model"]
     else:
         console.print(f"[green]{_t('ollama_detected', lang)}[/green]\n")
-        _show_installed_models(models, lang)
-        console.print()
-        _show_model_table(models, lang)
-        console.print()
 
         enable_ai = typer.confirm(
             _t("enable_ai", lang),
             default=True,
         )
 
-        default_model: str = "mistral"
-        for tier_info in MODEL_TIERS:
-            match: list[str] = [m for m in models if tier_info["name"] in m]
-            if match:
-                default_model = match[0]
-                break
-
-        selected_model = typer.prompt(
-            _t("select_model", lang),
-            default=default_model,
-            type=str,
-        )
-
-        if not any(selected_model == m or selected_model in m for m in models):
-            exact_matches: list[str] = [m for m in models if selected_model in m]
-            if exact_matches:
-                selected_model = exact_matches[0]
-                console.print(f"[cyan]Using: {selected_model}[/cyan]")
-            else:
-                console.print(
-                    f"\n[yellow]'{selected_model}' {_t('model_not_installed', lang)}[/yellow]"
-                )
-                console.print(
-                    f"{_t('model_pull', lang)} [bold]ollama pull {selected_model}[/bold]\n"
-                )
+        if enable_ai:
+            console.print()
+            selected_model = _show_model_menu(models, lang)
+        else:
+            selected_model = config["model"]
 
     config["ai_triage_enabled"] = enable_ai
     config["model"] = selected_model
