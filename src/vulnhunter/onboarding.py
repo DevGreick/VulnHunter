@@ -11,6 +11,8 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from vulnhunter.validators import validate_ollama_url
+
 BANNER = r"""
 [cyan]██╗   ██╗██╗   ██╗██╗     ███╗   ██╗██╗  ██╗██╗   ██╗███╗   ██╗████████╗███████╗██████╗
 ██║   ██║██║   ██║██║     ████╗  ██║██║  ██║██║   ██║████╗  ██║╚══██╔══╝██╔════╝██╔══██╗
@@ -472,6 +474,9 @@ def run_wizard() -> dict[str, Any]:
         )
         if custom_url:
             ollama_url = typer.prompt(_t("ollama_url_prompt", lang), type=str)
+            if not validate_ollama_url(ollama_url):
+                console.print("[red]Blocked: URL targets a private/invalid network range.[/red]")
+                ollama_url = config["ollama_url"]
             config["ollama_url"] = ollama_url
             available, models = detect_ollama(ollama_url)
             if available:

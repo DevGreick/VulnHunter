@@ -72,7 +72,7 @@ def test_code_analyzer_no_extensions(tmp_path: Path) -> None:
 
 
 def test_triage_engine_unavailable() -> None:
-    engine = TriageEngine(ollama_url="http://localhost:99999")
+    engine = TriageEngine(ollama_url="http://localhost:59999")
     assert engine.is_available() is False
 
 

@@ -34,7 +34,7 @@
                 <li><a href="#examples" data-i18n="nav_examples">Examples</a></li>
                 <li><a href="#ecosystems" data-i18n="nav_ecosystems">Ecosystems</a></li>
                 <li><a href="#ai-triage" data-i18n="nav_ai_triage">AI Triage</a></li>
-                <li><a href="#api" data-i18n="nav_api">API</a></li>
+                <li><a href="#sdk" data-i18n="nav_sdk">SDK</a></li>
                 <li><a href="https://github.com/DevGreick/VulnHunter" target="_blank" rel="noopener" class="nav-github">GitHub</a></li>
                 <li><button class="lang-toggle" id="langToggle" aria-label="Toggle language">EN</button></li>
             </ul>
@@ -479,18 +479,18 @@
         </div>
     </section>
 
-    <section class="api-reference" id="api">
+    <section class="api-reference" id="sdk">
         <div class="container">
             <h2 class="section-title reveal">
-                <span class="section-tag" data-i18n="tag_api">&lt;api&gt;</span>
-                <span data-i18n="api_section_title">Python API Reference</span>
+                <span class="section-tag" data-i18n="tag_sdk">&lt;SDK&gt;</span>
+                <span data-i18n="sdk_section_title">Python SDK</span>
             </h2>
-            <p class="api-intro reveal" data-i18n="api_intro">Use VulnHunter as a Python library to integrate vulnerability scanning into your own tools and workflows.</p>
+            <p class="api-intro reveal" data-i18n="sdk_intro">Use VulnHunter as a Python library to integrate vulnerability scanning into your own tools and workflows.</p>
 
             <div class="api-grid">
                 <div class="api-card reveal">
-                    <h3 data-i18n="api_scan_title">Scan Dependencies</h3>
-                    <p data-i18n="api_scan_desc">The <code>analyze()</code> function takes a database and a list of dependencies, returning a <code>ScanResult</code> with all matched vulnerabilities sorted by severity.</p>
+                    <h3 data-i18n="sdk_scan_title">Scan Dependencies</h3>
+                    <p data-i18n="sdk_scan_desc">The <code>analyze()</code> function takes a database and a list of dependencies, returning a <code>ScanResult</code> with all matched vulnerabilities sorted by severity.</p>
                     <div class="terminal terminal-sm">
                         <div class="terminal-header">
                             <div class="terminal-dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
@@ -524,8 +524,8 @@ db.close()">Copy</button>
                 </div>
 
                 <div class="api-card reveal">
-                    <h3 data-i18n="api_triage_title">AI Triage</h3>
-                    <p data-i18n="api_triage_desc">The <code>TriageEngine</code> sends each vulnerability to a local Ollama LLM along with code references found by <code>CodeAnalyzer</code>, returning contextual risk assessments.</p>
+                    <h3 data-i18n="sdk_triage_title">AI Triage</h3>
+                    <p data-i18n="sdk_triage_desc">The <code>TriageEngine</code> sends each vulnerability to a local Ollama LLM along with code references found by <code>CodeAnalyzer</code>, returning contextual risk assessments.</p>
                     <div class="terminal terminal-sm">
                         <div class="terminal-header">
                             <div class="terminal-dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
@@ -565,8 +565,8 @@ for item in results:
                 </div>
 
                 <div class="api-card reveal">
-                    <h3 data-i18n="api_export_title">Export Reports</h3>
-                    <p data-i18n="api_export_desc">Use <code>render_xlsx()</code> to generate styled Excel reports, or access the <code>ScanResult</code> model directly for custom integrations.</p>
+                    <h3 data-i18n="sdk_export_title">Export Reports</h3>
+                    <p data-i18n="sdk_export_desc">Use <code>render_xlsx()</code> to generate styled Excel reports, or access the <code>ScanResult</code> model directly for custom integrations.</p>
                     <div class="terminal terminal-sm">
                         <div class="terminal-header">
                             <div class="terminal-dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
@@ -595,7 +595,7 @@ for v in result.vulnerabilities:
             </div>
 
             <div class="api-full-docs reveal">
-                <a href="api.md" class="btn btn-outline" data-i18n="api_full_link">Full API Documentation (Markdown)</a>
+                <a href="sdk.md" class="btn btn-outline" data-i18n="sdk_full_link">Full SDK Documentation (Markdown)</a>
             </div>
         </div>
     </section>

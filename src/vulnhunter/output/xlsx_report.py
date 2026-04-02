@@ -32,7 +32,7 @@ def _validate_output_path(output_path: Path, base_dir: Path | None = None) -> Pa
     resolved = output_path.resolve()
     if base_dir is not None:
         base_resolved = base_dir.resolve()
-        if not str(resolved).startswith(str(base_resolved)):
+        if not resolved.is_relative_to(base_resolved):
             raise ValueError("output path escapes base directory")
     return resolved
 

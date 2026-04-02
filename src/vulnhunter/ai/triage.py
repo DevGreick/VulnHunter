@@ -8,6 +8,8 @@ from typing import Any
 import requests
 from pydantic import BaseModel, Field, ValidationError
 
+from vulnhunter.validators import validate_ollama_url
+
 logger = logging.getLogger(__name__)
 
 DISCLAIMER: str = "AI-assisted triage. Manual validation via POC required."
@@ -86,12 +88,27 @@ SYSTEM_PROMPT: str = (
     "Respond strictly in JSON with keys: real_risk, analysis, recommendation."
 )
 
+_SANITIZE_BACKTICKS: re.Pattern[str] = re.compile(r"`+")
+_SANITIZE_JSON_LIKE: re.Pattern[str] = re.compile(r"\{[^}]*\}")
+_SANITIZE_INSTRUCTIONS: re.Pattern[str] = re.compile(
+    r"^(ignore|disregard|forget|override|system|assistant|user)\s*:?\s*",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
+def _sanitize_field(value: str) -> str:
+    value = _SANITIZE_BACKTICKS.sub("", value)
+    value = _SANITIZE_JSON_LIKE.sub("", value)
+    value = _SANITIZE_INSTRUCTIONS.sub("", value)
+    return value.strip()
+
+
 PROMPT_TEMPLATE: str = (
     "VULNERABILITY:\n"
     "- ID: {vuln_id}\n"
-    "- Package: {package_name} {version}\n"
+    "- Package: [BEGIN DATA]{package_name}[END DATA] [BEGIN DATA]{version}[END DATA]\n"
     "- Severity (CVSS): {severity}\n"
-    "- Description: {summary}\n"
+    "- Description: [BEGIN DATA]{summary}[END DATA]\n"
     "{fixed_info}"
     "\n"
     "CODE REFERENCES (where this package is used in the project):\n"
@@ -189,6 +206,8 @@ class TriageEngine:
         language: str = "en",
         deep_triage: bool = False,
     ) -> None:
+        if not validate_ollama_url(ollama_url):
+            raise ValueError(f"Invalid or blocked Ollama URL: {ollama_url}")
         self._model: str = model
         self._ollama_url: str = ollama_url.rstrip("/")
         self._analyzer: CodeAnalyzer = CodeAnalyzer()
@@ -253,10 +272,10 @@ class TriageEngine:
 
         return PROMPT_TEMPLATE.format(
             vuln_id=vuln.get("id", "N/A"),
-            package_name=vuln.get("package", "unknown"),
-            version=vuln.get("version", "unknown"),
+            package_name=_sanitize_field(vuln.get("package", "unknown")),
+            version=_sanitize_field(vuln.get("version", "unknown")),
             severity=vuln.get("severity", "unknown"),
-            summary=vuln.get("summary", "No description available"),
+            summary=_sanitize_field(vuln.get("summary", "No description available")),
             fixed_info=fixed_info,
             code_refs_formatted=refs_text,
             semgrep_context=semgrep_block,

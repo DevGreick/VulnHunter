@@ -54,14 +54,15 @@ def _resolve_api_key(explicit_key: str = "") -> str:
     return _load_dotenv_key()
 
 
-def _get_session(api_key: str = "") -> tuple[requests.Session, float, str]:
+def _get_session(api_key: str = "") -> tuple[requests.Session, float, bool]:
     session = requests.Session()
     session.headers["User-Agent"] = USER_AGENT
-    resolved_key = _resolve_api_key(api_key)
-    if resolved_key:
+    resolved_key: str = _resolve_api_key(api_key)
+    has_key: bool = bool(resolved_key)
+    if has_key:
         session.headers["apiKey"] = resolved_key
-    delay = 0.6 if resolved_key else 6.0
-    return session, delay, resolved_key
+    delay: float = 0.6 if has_key else 6.0
+    return session, delay, has_key
 
 
 def extract_vendor_product(cpe_uri: str) -> str | None:
@@ -192,7 +193,6 @@ def _paginated_fetch(
     base_url: str,
     delay: float,
     results_key: str,
-    api_key: str = "",
     callback: Callable | None = None,
 ) -> list[dict[str, Any]]:
     all_items: list[dict[str, Any]] = []
@@ -254,8 +254,8 @@ def update_nvd(
     api_key: str = "",
     callback: Callable | None = None,
 ) -> int:
-    session, delay, resolved_key = _get_session(api_key)
-    items = _paginated_fetch(session, NVD_CVE_URL, delay, "vulnerabilities", resolved_key, callback)
+    session, delay, has_key = _get_session(api_key)
+    items = _paginated_fetch(session, NVD_CVE_URL, delay, "vulnerabilities", callback)
 
     count = 0
     for item in items:
@@ -277,8 +277,8 @@ def build_cpe_index(
     api_key: str = "",
     callback: Callable | None = None,
 ) -> int:
-    session, delay, resolved_key = _get_session(api_key)
-    items = _paginated_fetch(session, NVD_CPE_URL, delay, "products", resolved_key, callback)
+    session, delay, has_key = _get_session(api_key)
+    items = _paginated_fetch(session, NVD_CPE_URL, delay, "products", callback)
 
     count = 0
     for item in items:

@@ -1,4 +1,4 @@
-# VulnHunter Python API Reference
+# VulnHunter Python SDK Reference
 
 VulnHunter can be used as a Python library for programmatic vulnerability scanning, AI-powered triage, and report generation.
 
