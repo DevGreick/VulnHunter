@@ -45,6 +45,8 @@ class JavaParser:
             return deps
 
         root = tree.getroot()
+        if root is None:
+            return deps
         properties: dict[str, str] = self._extract_properties(root)
 
         project_version: str = self._get_project_version(root, properties)

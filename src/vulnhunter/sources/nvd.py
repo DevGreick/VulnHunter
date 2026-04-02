@@ -120,9 +120,9 @@ def _score_to_severity_v2(score: float) -> str:
 def get_english_description(descriptions: list[dict[str, Any]]) -> str:
     for desc in descriptions:
         if desc.get("lang", "") in ("en", "en-US"):
-            return desc.get("value", "")
+            return str(desc.get("value", ""))
     if descriptions:
-        return descriptions[0].get("value", "")
+        return str(descriptions[0].get("value", ""))
     return ""
 
 
@@ -193,7 +193,7 @@ def _paginated_fetch(
     base_url: str,
     delay: float,
     results_key: str,
-    callback: Callable | None = None,
+    callback: Callable[[int, int], None] | None = None,
 ) -> list[dict[str, Any]]:
     all_items: list[dict[str, Any]] = []
     start_index = 0
@@ -252,7 +252,7 @@ def _paginated_fetch(
 def update_nvd(
     db: VulnDB,
     api_key: str = "",
-    callback: Callable | None = None,
+    callback: Callable[[int, int], None] | None = None,
 ) -> int:
     session, delay, has_key = _get_session(api_key)
     items = _paginated_fetch(session, NVD_CVE_URL, delay, "vulnerabilities", callback)
@@ -275,7 +275,7 @@ def update_nvd(
 def build_cpe_index(
     db: VulnDB,
     api_key: str = "",
-    callback: Callable | None = None,
+    callback: Callable[[int, int], None] | None = None,
 ) -> int:
     session, delay, has_key = _get_session(api_key)
     items = _paginated_fetch(session, NVD_CPE_URL, delay, "products", callback)

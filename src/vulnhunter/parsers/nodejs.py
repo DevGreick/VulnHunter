@@ -2,6 +2,7 @@ import json
 import logging
 import re
 from pathlib import Path
+from typing import Any
 
 from vulnhunter.models import Dependency, Ecosystem
 from vulnhunter.parsers.base import _execute_command, _resolve_platform_command
@@ -37,7 +38,7 @@ class NodejsParser:
         deps: list[Dependency] = []
         try:
             content: str = file_path.read_text(encoding="utf-8")
-            data: dict = json.loads(content)
+            data: dict[str, Any] = json.loads(content)
         except (OSError, json.JSONDecodeError) as exc:
             logger.error("Failed to parse %s: %s", file_path, exc)
             return deps
@@ -50,7 +51,7 @@ class NodejsParser:
         ]
 
         for section in dep_sections:
-            section_data: dict = data.get(section, {})
+            section_data: dict[str, Any] = data.get(section, {})
             if not isinstance(section_data, dict):
                 continue
             for name, raw_version in section_data.items():
@@ -86,14 +87,14 @@ class NodejsParser:
             return deps
 
         try:
-            tree: dict = json.loads(output)
+            tree: dict[str, Any] = json.loads(output)
         except json.JSONDecodeError:
             return deps
 
         self._walk_npm_tree(tree.get("dependencies", {}), deps)
         return deps
 
-    def _walk_npm_tree(self, node: dict, deps: list[Dependency]) -> None:
+    def _walk_npm_tree(self, node: dict[str, Any], deps: list[Dependency]) -> None:
         for name, info in node.items():
             if not isinstance(info, dict):
                 continue

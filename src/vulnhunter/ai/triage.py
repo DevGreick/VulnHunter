@@ -230,7 +230,7 @@ class TriageEngine:
     def semgrep_available(self) -> bool:
         if self._semgrep is None:
             return False
-        return self._semgrep.is_available()
+        return bool(self._semgrep.is_available())
 
     def _build_prompt(
         self,

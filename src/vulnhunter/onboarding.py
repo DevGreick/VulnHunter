@@ -432,7 +432,7 @@ def _show_model_menu(
                 if not selected["installed"]:
                     msg = _t("model_not_installed_pull", lang).format(model=selected["name"])
                     console.print(f"\n[yellow]{msg}[/yellow]\n")
-                return selected["name"]
+                return str(selected["name"])
         except ValueError:
             pass
         console.print(f"[red]{_t('invalid_choice', lang)}[/red]")

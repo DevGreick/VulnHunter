@@ -41,7 +41,7 @@ jobs:
       - name: Mypy
         run: |
           source .venv/bin/activate
-          mypy src/
+          mypy src/vulnhunter
 
       - name: Pytest
         run: |

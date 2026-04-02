@@ -49,7 +49,8 @@ def _style_header(ws: Worksheet, col_count: int) -> None:
 def _auto_width(ws: Worksheet) -> None:
     for col_cells in ws.columns:
         max_len = 0
-        col_letter = get_column_letter(col_cells[0].column)
+        col_idx: int = col_cells[0].column or 1
+        col_letter = get_column_letter(col_idx)
         for cell in col_cells:
             val = str(cell.value) if cell.value is not None else ""
             max_len = max(max_len, len(val))

@@ -208,7 +208,7 @@ def _process_vuln(db: VulnDB, data: dict[str, Any]) -> bool:
     return True
 
 
-def _download_and_process(db: VulnDB, ecosystem: str, callback: Callable | None = None) -> int:
+def _download_and_process(db: VulnDB, ecosystem: str, callback: Callable[[str, int], None] | None = None) -> int:
     url = f"{OSV_BASE_URL}/{ecosystem}/all.zip"
     logger.info("Downloading OSV data for %s", ecosystem)
 
@@ -302,7 +302,7 @@ def _download_and_process(db: VulnDB, ecosystem: str, callback: Callable | None 
 def update_osv(
     db: VulnDB,
     ecosystems: list[str],
-    callback: Callable | None = None,
+    callback: Callable[[str, int], None] | None = None,
 ) -> int:
     total = 0
     for ecosystem in ecosystems:

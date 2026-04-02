@@ -2,6 +2,7 @@ import json
 import logging
 import re
 from pathlib import Path
+from typing import Any
 
 from vulnhunter.models import Dependency, Ecosystem
 from vulnhunter.parsers.base import _execute_command, _resolve_platform_command
@@ -38,13 +39,13 @@ class PhpParser:
         deps: list[Dependency] = []
         try:
             content: str = file_path.read_text(encoding="utf-8")
-            data: dict = json.loads(content)
+            data: dict[str, Any] = json.loads(content)
         except (OSError, json.JSONDecodeError) as exc:
             logger.error("Failed to parse %s: %s", file_path, exc)
             return deps
 
         for section in ("require", "require-dev"):
-            section_data: dict = data.get(section, {})
+            section_data: dict[str, Any] = data.get(section, {})
             if not isinstance(section_data, dict):
                 continue
             for name, raw_version in section_data.items():
@@ -84,11 +85,11 @@ class PhpParser:
             return deps
 
         try:
-            data: dict = json.loads(output)
+            data: dict[str, Any] = json.loads(output)
         except json.JSONDecodeError:
             return deps
 
-        installed: list[dict] = data.get("installed", [])
+        installed: list[dict[str, Any]] = data.get("installed", [])
         for pkg in installed:
             name: str = pkg.get("name", "")
             version: str = pkg.get("version", "")

@@ -101,7 +101,7 @@ class SemgrepEngine:
             str(project_dir),
         ]
 
-        output: str | None = _execute_command(cmd, project_dir, timeout=180)
+        output: str | None = _execute_command(cmd, project_dir)
         if not output:
             return []
 
