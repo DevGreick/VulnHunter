@@ -24,6 +24,10 @@ def render_output(result: ScanResult, format: str, output_path: Path | None) -> 
         from vulnhunter.output.sarif import render_sarif
 
         render_sarif(result, output_path)
+    elif format == "xlsx":
+        from vulnhunter.output.xlsx_report import render_xlsx
+
+        render_xlsx(result, output_path)
     else:
         raise ValueError(f"Unknown output format: {format}")
 

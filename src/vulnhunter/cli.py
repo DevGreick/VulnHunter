@@ -208,7 +208,7 @@ def scan(
         "table",
         "--format",
         "-f",
-        help="Output format: table (terminal), json (report), sarif (GitHub/VS Code).",
+        help="Output format: table (terminal), json (report), sarif (GitHub/VS Code), xlsx (Excel).",
     ),
     output: Path | None = typer.Option(
         None,
@@ -280,14 +280,14 @@ def scan(
         result.vulnerabilities = [v for v in result.vulnerabilities if v.severity.value in allowed]
         result.total_vulnerabilities = len(result.vulnerabilities)
 
-    VALID_FORMATS = {"table", "json", "sarif"}
+    VALID_FORMATS = {"table", "json", "sarif", "xlsx"}
     if format not in VALID_FORMATS:
         console.print(f"[bold red]Invalid format '{format}'. Must be one of: {', '.join(sorted(VALID_FORMATS))}[/]")
         raise typer.Exit(1)
 
     from vulnhunter.output import render_output
 
-    if format in ("json", "sarif") and output is None:
+    if format in ("json", "sarif", "xlsx") and output is None:
         output = Path(f"reports/report.{format}")
 
     render_output(result, format, output)
