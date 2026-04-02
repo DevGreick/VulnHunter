@@ -27,7 +27,7 @@ app = typer.Typer(
     help="Offline vulnerability scanner for project dependencies.",
     invoke_without_command=True,
     callback=_default_callback,
-    add_completion=False,
+    add_completion=True,
 )
 db_app = typer.Typer(help="Manage the local vulnerability database.")
 app.add_typer(db_app, name="db")
