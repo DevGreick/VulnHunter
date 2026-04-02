@@ -7,12 +7,26 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from vulnhunter.db.store import VulnDB
-from vulnhunter.models import ECOSYSTEM_FROM_FILE, OSV_ECOSYSTEM_MAP, Dependency, Ecosystem
+from vulnhunter.models import ECOSYSTEM_FROM_FILE, OSV_ECOSYSTEM_MAP, Dependency, Ecosystem, ScanResult
+
+
+def _default_callback(ctx: typer.Context) -> None:
+    if ctx.invoked_subcommand is None:
+        from vulnhunter.onboarding import needs_setup, run_wizard, show_banner
+
+        if needs_setup():
+            run_wizard()
+        else:
+            show_banner()
+            console.print("Run [bold cyan]vulnhunter scan <target>[/bold cyan] to start scanning.\n")
+            console.print("Use [bold]--help[/bold] for available commands.\n")
+
 
 app = typer.Typer(
     name="vulnhunter",
     help="Offline vulnerability scanner for project dependencies.",
-    no_args_is_help=True,
+    invoke_without_command=True,
+    callback=_default_callback,
 )
 db_app = typer.Typer(help="Manage the local vulnerability database.")
 app.add_typer(db_app, name="db")
@@ -88,6 +102,35 @@ def _detect_ecosystems(deps: list[Dependency]) -> list[str]:
 
 
 @app.command()
+def init() -> None:
+    from vulnhunter.onboarding import run_wizard
+
+    run_wizard()
+
+
+@app.command()
+def config() -> None:
+    from vulnhunter.onboarding import load_config, run_wizard, show_banner
+
+    cfg = load_config()
+    show_banner()
+
+    from rich.table import Table
+
+    table = Table(title="Current Configuration")
+    table.add_column("Setting", style="bold")
+    table.add_column("Value")
+    table.add_row("AI Triage", "enabled" if cfg.get("ai_triage_enabled") else "disabled")
+    table.add_row("Model", cfg.get("model", "mistral"))
+    table.add_row("Ollama URL", cfg.get("ollama_url", "http://localhost:11434"))
+    table.add_row("Language", cfg.get("language", "en"))
+    console.print(table)
+
+    if typer.confirm("\nReconfigure?", default=False):
+        run_wizard()
+
+
+@app.command()
 def scan(
     paths: list[Path] = typer.Argument(
         ...,
@@ -121,6 +164,16 @@ def scan(
         None,
         "--db",
         help="Path to vulnerability database.",
+    ),
+    ai_triage: bool = typer.Option(
+        False,
+        "--ai-triage",
+        help="Enable AI-powered vulnerability triage via Ollama.",
+    ),
+    model: str = typer.Option(
+        "",
+        "--model",
+        help="Ollama model for AI triage (default: from config or mistral).",
     ),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
 ) -> None:
@@ -172,10 +225,103 @@ def scan(
 
     render_output(result, format, output)
 
+    _run_ai_triage(result, paths, ai_triage, model)
+
     db.close()
 
     if result.total_vulnerabilities > 0:
         raise typer.Exit(1)
+
+
+def _run_ai_triage(result: ScanResult, paths: list[Path], ai_triage: bool, model: str) -> None:
+    from vulnhunter.onboarding import load_config
+
+    cfg = load_config()
+    should_triage = ai_triage or cfg.get("ai_triage_enabled", False)
+
+    if not should_triage:
+        return
+
+    if not hasattr(result, "vulnerabilities") or not result.vulnerabilities:
+        return
+
+    effective_model = model or cfg.get("model", "mistral")
+    ollama_url = cfg.get("ollama_url", "http://localhost:11434")
+
+    from vulnhunter.ai.triage import TriageEngine
+
+    engine = TriageEngine(model=effective_model, ollama_url=ollama_url)
+
+    if not engine.is_available():
+        console.print(
+            "\n[bold yellow]AI Triage:[/] Ollama is not available. "
+            "Start it with [bold]ollama serve[/bold] or disable AI triage in config."
+        )
+        return
+
+    vuln_dicts = [
+        {
+            "id": v.vuln_id,
+            "package": v.name,
+            "version": v.version,
+            "severity": v.severity.value,
+            "summary": v.summary,
+            "ecosystem": v.ecosystem.value if v.ecosystem else "",
+        }
+        for v in result.vulnerabilities
+    ]
+
+    project_dir = paths[0] if paths[0].is_dir() else paths[0].parent
+
+    msg = f"\n[bold cyan]AI Triage[/bold cyan] ({effective_model}) analyzing {len(vuln_dicts)} vulnerabilities...\n"
+    console.print(msg)
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Analyzing...", total=len(vuln_dicts))
+
+        def _progress_cb(current: int, total: int) -> None:
+            progress.update(task, completed=current, description=f"Analyzing {current}/{total}...")
+
+        triage_results = engine.triage_all(vuln_dicts, project_dir, callback=_progress_cb)
+
+    from rich.table import Table
+
+    table = Table(title="AI Triage Results", show_lines=True)
+    table.add_column("CVE", style="bold", width=18)
+    table.add_column("Package", width=15)
+    table.add_column("CVSS", width=10)
+    table.add_column("Real Risk", width=12)
+    table.add_column("Analysis", width=40)
+    table.add_column("Action", width=30)
+
+    risk_colors = {
+        "CRITICAL": "bold red",
+        "HIGH": "red",
+        "MEDIUM": "yellow",
+        "LOW": "green",
+        "IRRELEVANT": "dim",
+        "UNKNOWN": "dim",
+    }
+
+    for tr in triage_results:
+        vuln = tr["vuln"]
+        triage = tr["triage"]
+        risk = triage.get("real_risk", "UNKNOWN")
+        color = risk_colors.get(risk, "dim")
+        table.add_row(
+            vuln.get("id", ""),
+            vuln.get("package", ""),
+            vuln.get("severity", ""),
+            f"[{color}]{risk}[/{color}]",
+            triage.get("analysis", ""),
+            triage.get("recommendation", ""),
+        )
+
+    console.print(table)
 
 
 @db_app.command("update")
