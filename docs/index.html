@@ -34,6 +34,7 @@
                 <li><a href="#examples" data-i18n="nav_examples">Examples</a></li>
                 <li><a href="#ecosystems" data-i18n="nav_ecosystems">Ecosystems</a></li>
                 <li><a href="#ai-triage" data-i18n="nav_ai_triage">AI Triage</a></li>
+                <li><a href="#api" data-i18n="nav_api">API</a></li>
                 <li><a href="https://github.com/DevGreick/VulnHunter" target="_blank" rel="noopener" class="nav-github">GitHub</a></li>
                 <li><button class="lang-toggle" id="langToggle" aria-label="Toggle language">EN</button></li>
             </ul>
@@ -474,6 +475,127 @@
                         <div class="term-line"><span class="term-output term-green">  Fix: ensure DEBUG=False in production config</span></div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="api-reference" id="api">
+        <div class="container">
+            <h2 class="section-title reveal">
+                <span class="section-tag" data-i18n="tag_api">&lt;api&gt;</span>
+                <span data-i18n="api_section_title">Python API Reference</span>
+            </h2>
+            <p class="api-intro reveal" data-i18n="api_intro">Use VulnHunter as a Python library to integrate vulnerability scanning into your own tools and workflows.</p>
+
+            <div class="api-grid">
+                <div class="api-card reveal">
+                    <h3 data-i18n="api_scan_title">Scan Dependencies</h3>
+                    <p data-i18n="api_scan_desc">The <code>analyze()</code> function takes a database and a list of dependencies, returning a <code>ScanResult</code> with all matched vulnerabilities sorted by severity.</p>
+                    <div class="terminal terminal-sm">
+                        <div class="terminal-header">
+                            <div class="terminal-dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                            <span class="terminal-title">analyze.py</span>
+                            <button class="copy-btn" data-copy="from vulnhunter.db.store import VulnDB
+from vulnhunter.models import Dependency, Ecosystem
+from vulnhunter.analyzer import analyze
+
+db = VulnDB()
+deps = [Dependency(name=&quot;requests&quot;, version=&quot;2.31.0&quot;, ecosystem=Ecosystem.PYPI)]
+result = analyze(db, deps)
+
+for v in result.vulnerabilities:
+    print(f&quot;{v.vuln_id} [{v.severity.value}] {v.name}&quot;)
+db.close()">Copy</button>
+                        </div>
+                        <div class="terminal-body">
+                            <div class="term-line"><span class="term-keyword">from</span> <span class="term-output">vulnhunter.db.store</span> <span class="term-keyword">import</span> <span class="term-output">VulnDB</span></div>
+                            <div class="term-line"><span class="term-keyword">from</span> <span class="term-output">vulnhunter.models</span> <span class="term-keyword">import</span> <span class="term-output">Dependency, Ecosystem</span></div>
+                            <div class="term-line"><span class="term-keyword">from</span> <span class="term-output">vulnhunter.analyzer</span> <span class="term-keyword">import</span> <span class="term-output">analyze</span></div>
+                            <div class="term-line">&nbsp;</div>
+                            <div class="term-line"><span class="term-output">db = VulnDB()</span></div>
+                            <div class="term-line"><span class="term-output">deps = [Dependency(name=</span><span class="term-green">"requests"</span><span class="term-output">, version=</span><span class="term-green">"2.31.0"</span><span class="term-output">, ecosystem=Ecosystem.PYPI)]</span></div>
+                            <div class="term-line"><span class="term-output">result = analyze(db, deps)</span></div>
+                            <div class="term-line">&nbsp;</div>
+                            <div class="term-line"><span class="term-keyword">for</span> <span class="term-output">v</span> <span class="term-keyword">in</span> <span class="term-output">result.vulnerabilities:</span></div>
+                            <div class="term-line"><span class="term-output">    print(f</span><span class="term-green">"{v.vuln_id} [{v.severity.value}] {v.name}"</span><span class="term-output">)</span></div>
+                            <div class="term-line"><span class="term-output">db.close()</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="api-card reveal">
+                    <h3 data-i18n="api_triage_title">AI Triage</h3>
+                    <p data-i18n="api_triage_desc">The <code>TriageEngine</code> sends each vulnerability to a local Ollama LLM along with code references found by <code>CodeAnalyzer</code>, returning contextual risk assessments.</p>
+                    <div class="terminal terminal-sm">
+                        <div class="terminal-header">
+                            <div class="terminal-dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                            <span class="terminal-title">triage.py</span>
+                            <button class="copy-btn" data-copy="from pathlib import Path
+from vulnhunter.ai.triage import TriageEngine
+
+engine = TriageEngine(model=&quot;mistral&quot;, language=&quot;en&quot;)
+vulns = [{
+    &quot;id&quot;: &quot;CVE-2024-3651&quot;, &quot;package&quot;: &quot;idna&quot;,
+    &quot;version&quot;: &quot;3.6&quot;, &quot;severity&quot;: &quot;HIGH&quot;,
+    &quot;summary&quot;: &quot;DoS via resource consumption&quot;,
+    &quot;ecosystem&quot;: &quot;PyPI&quot;, &quot;fixed_version&quot;: &quot;3.7&quot;,
+}]
+results = engine.triage_all(vulns, Path(&quot;.&quot;))
+for item in results:
+    t = item[&quot;triage&quot;]
+    print(f&quot;{item['vuln']['id']}: {t['real_risk']}&quot;)">Copy</button>
+                        </div>
+                        <div class="terminal-body">
+                            <div class="term-line"><span class="term-keyword">from</span> <span class="term-output">pathlib</span> <span class="term-keyword">import</span> <span class="term-output">Path</span></div>
+                            <div class="term-line"><span class="term-keyword">from</span> <span class="term-output">vulnhunter.ai.triage</span> <span class="term-keyword">import</span> <span class="term-output">TriageEngine</span></div>
+                            <div class="term-line">&nbsp;</div>
+                            <div class="term-line"><span class="term-output">engine = TriageEngine(model=</span><span class="term-green">"mistral"</span><span class="term-output">, language=</span><span class="term-green">"en"</span><span class="term-output">)</span></div>
+                            <div class="term-line"><span class="term-output">vulns = [{</span></div>
+                            <div class="term-line"><span class="term-output">    </span><span class="term-green">"id"</span><span class="term-output">: </span><span class="term-green">"CVE-2024-3651"</span><span class="term-output">, </span><span class="term-green">"package"</span><span class="term-output">: </span><span class="term-green">"idna"</span><span class="term-output">,</span></div>
+                            <div class="term-line"><span class="term-output">    </span><span class="term-green">"version"</span><span class="term-output">: </span><span class="term-green">"3.6"</span><span class="term-output">, </span><span class="term-green">"severity"</span><span class="term-output">: </span><span class="term-green">"HIGH"</span><span class="term-output">,</span></div>
+                            <div class="term-line"><span class="term-output">    </span><span class="term-green">"summary"</span><span class="term-output">: </span><span class="term-green">"DoS via resource consumption"</span><span class="term-output">,</span></div>
+                            <div class="term-line"><span class="term-output">    </span><span class="term-green">"ecosystem"</span><span class="term-output">: </span><span class="term-green">"PyPI"</span><span class="term-output">, </span><span class="term-green">"fixed_version"</span><span class="term-output">: </span><span class="term-green">"3.7"</span><span class="term-output">,</span></div>
+                            <div class="term-line"><span class="term-output">}]</span></div>
+                            <div class="term-line"><span class="term-output">results = engine.triage_all(vulns, Path(</span><span class="term-green">"."</span><span class="term-output">))</span></div>
+                            <div class="term-line"><span class="term-keyword">for</span> <span class="term-output">item</span> <span class="term-keyword">in</span> <span class="term-output">results:</span></div>
+                            <div class="term-line"><span class="term-output">    t = item[</span><span class="term-green">"triage"</span><span class="term-output">]</span></div>
+                            <div class="term-line"><span class="term-output">    print(f</span><span class="term-green">"{item['vuln']['id']}: {t['real_risk']}"</span><span class="term-output">)</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="api-card reveal">
+                    <h3 data-i18n="api_export_title">Export Reports</h3>
+                    <p data-i18n="api_export_desc">Use <code>render_xlsx()</code> to generate styled Excel reports, or access the <code>ScanResult</code> model directly for custom integrations.</p>
+                    <div class="terminal terminal-sm">
+                        <div class="terminal-header">
+                            <div class="terminal-dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                            <span class="terminal-title">export.py</span>
+                            <button class="copy-btn" data-copy="from pathlib import Path
+from vulnhunter.output.xlsx_report import render_xlsx
+
+render_xlsx(result, Path(&quot;reports/scan.xlsx&quot;))
+
+for v in result.vulnerabilities:
+    if v.severity.value == &quot;CRITICAL&quot;:
+        print(f&quot;CRITICAL: {v.vuln_id} in {v.name} {v.version}&quot;)">Copy</button>
+                        </div>
+                        <div class="terminal-body">
+                            <div class="term-line"><span class="term-keyword">from</span> <span class="term-output">pathlib</span> <span class="term-keyword">import</span> <span class="term-output">Path</span></div>
+                            <div class="term-line"><span class="term-keyword">from</span> <span class="term-output">vulnhunter.output.xlsx_report</span> <span class="term-keyword">import</span> <span class="term-output">render_xlsx</span></div>
+                            <div class="term-line">&nbsp;</div>
+                            <div class="term-line"><span class="term-output">render_xlsx(result, Path(</span><span class="term-green">"reports/scan.xlsx"</span><span class="term-output">))</span></div>
+                            <div class="term-line">&nbsp;</div>
+                            <div class="term-line"><span class="term-keyword">for</span> <span class="term-output">v</span> <span class="term-keyword">in</span> <span class="term-output">result.vulnerabilities:</span></div>
+                            <div class="term-line"><span class="term-output">    </span><span class="term-keyword">if</span> <span class="term-output">v.severity.value == </span><span class="term-green">"CRITICAL"</span><span class="term-output">:</span></div>
+                            <div class="term-line"><span class="term-output">        print(f</span><span class="term-green">"CRITICAL: {v.vuln_id} in {v.name} {v.version}"</span><span class="term-output">)</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="api-full-docs reveal">
+                <a href="api.md" class="btn btn-outline" data-i18n="api_full_link">Full API Documentation (Markdown)</a>
             </div>
         </div>
     </section>
