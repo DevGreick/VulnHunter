@@ -1,6 +1,5 @@
 import logging
 import re
-from typing import Optional
 
 from vulnhunter.db.store import VulnDB
 
@@ -53,7 +52,7 @@ CWE_SEVERITY_MAP: dict[str, str] = {
 CWE_PATTERN = re.compile(r"CWE-\d+", re.IGNORECASE)
 
 
-def _resolve_from_nvd(db: VulnDB, vuln_id: str) -> Optional[str]:
+def _resolve_from_nvd(db: VulnDB, vuln_id: str) -> str | None:
     try:
         severity = db.get_severity_by_id(vuln_id)
         if severity:
@@ -69,7 +68,7 @@ def _resolve_from_nvd(db: VulnDB, vuln_id: str) -> Optional[str]:
     return None
 
 
-def _resolve_from_cwe(summary: str) -> Optional[str]:
+def _resolve_from_cwe(summary: str) -> str | None:
     matches = CWE_PATTERN.findall(summary)
     for cwe in matches:
         severity = CWE_SEVERITY_MAP.get(cwe.upper())
@@ -78,7 +77,7 @@ def _resolve_from_cwe(summary: str) -> Optional[str]:
     return None
 
 
-def _resolve_from_keywords(summary: str) -> Optional[str]:
+def _resolve_from_keywords(summary: str) -> str | None:
     lower = summary.lower()
     critical_keywords = [
         "remote code execution", "rce", "arbitrary code execution",

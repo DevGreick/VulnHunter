@@ -305,7 +305,10 @@ def scan(
         raise typer.Exit(1)
 
 
-def _run_ai_triage(result: ScanResult, paths: list[Path], ai_triage: bool, model: str, deep_triage: bool = False) -> None:
+def _run_ai_triage(
+    result: ScanResult, paths: list[Path], ai_triage: bool,
+    model: str, deep_triage: bool = False,
+) -> None:
     from vulnhunter.onboarding import load_config
 
     cfg = load_config()
@@ -387,7 +390,6 @@ def _run_ai_triage(result: ScanResult, paths: list[Path], ai_triage: bool, model
     title = "Resultados da Triagem IA" if lang == "pt" else "AI Triage Results"
     severity_label = "Severidade" if lang == "pt" else "Severity"
     fix_label = "Correcao" if lang == "pt" else "Fix"
-    disclaimer_label = "Aviso" if lang == "pt" else "Disclaimer"
 
     risk_colors: dict[str, str] = {
         "CRITICAL": "bold red",

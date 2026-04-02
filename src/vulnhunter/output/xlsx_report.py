@@ -62,7 +62,6 @@ def _severity_fill(sev: str) -> PatternFill:
 
 
 def _severity_font(sev: str) -> Font:
-    bg = SEVERITY_COLORS.get(sev, "8B949E")
     text_color = "000000" if sev in ("MEDIUM", "LOW") else "FFFFFF"
     return Font(name="Calibri", bold=True, size=10, color=text_color)
 
@@ -74,8 +73,9 @@ def _build_summary_sheet(wb: Workbook, result: ScanResult) -> None:
     ws.title = "Summary"
 
     ws.cell(row=1, column=1, value="VulnHunter Scan Report").font = TITLE_FONT
-    ws.cell(row=2, column=1, value=f"Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}").font = SUBTITLE_FONT
-    ws.cell(row=3, column=1, value=f"VulnHunter v2.0.0").font = SUBTITLE_FONT
+    generated = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
+    ws.cell(row=2, column=1, value=f"Generated: {generated}").font = SUBTITLE_FONT
+    ws.cell(row=3, column=1, value="VulnHunter v2.0.2").font = SUBTITLE_FONT
 
     ws.cell(row=5, column=1, value="Metric").font = HEADER_FONT
     ws.cell(row=5, column=1).fill = HEADER_FILL
