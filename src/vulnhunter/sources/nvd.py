@@ -45,6 +45,8 @@ def _get_session(api_key: str = "") -> tuple[requests.Session, float, str]:
     session = requests.Session()
     session.headers["User-Agent"] = USER_AGENT
     resolved_key = _resolve_api_key(api_key)
+    if resolved_key:
+        session.headers["apiKey"] = resolved_key
     delay = 0.6 if resolved_key else 6.0
     return session, delay, resolved_key
 
@@ -186,8 +188,6 @@ def _paginated_fetch(
 
     while True:
         params: dict[str, Any] = {"startIndex": start_index, "resultsPerPage": PAGE_SIZE}
-        if api_key:
-            params["apiKey"] = api_key
         logger.info("Fetching %s startIndex=%d", base_url, start_index)
 
         response = session.get(base_url, params=params, timeout=REQUEST_TIMEOUT)
