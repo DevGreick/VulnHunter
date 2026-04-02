@@ -14,6 +14,7 @@ from vulnhunter.models import (
     Severity,
     Vulnerability,
 )
+from vulnhunter.severity_resolver import resolve_severity
 
 logger = logging.getLogger("vulnhunter.analyzer")
 
@@ -138,10 +139,15 @@ def analyze(
                 ignored_count += 1
                 continue
 
+            resolved_str, is_estimated = resolve_severity(
+                db, vuln_id, severity_str, summary or "",
+            )
             try:
-                sev = Severity(severity_str.upper()) if severity_str else Severity.UNKNOWN
+                sev = Severity(resolved_str.upper())
             except ValueError:
-                sev = Severity.UNKNOWN
+                sev = Severity.MEDIUM
+
+            display_summary = summary or "No summary provided"
 
             vuln = Vulnerability(
                 vuln_id=vuln_id,
@@ -150,7 +156,7 @@ def analyze(
                 version=dep.version,
                 ecosystem=dep.ecosystem,
                 severity=sev,
-                summary=summary or "No summary provided",
+                summary=display_summary,
                 fixed_version=fixed if fixed else None,
             )
             unique_vulns.add(vuln)
