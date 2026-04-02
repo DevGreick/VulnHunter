@@ -12,8 +12,6 @@ jobs:
   build-db:
     runs-on: ubuntu-latest
     timeout-minutes: 120
-    env:
-      HAS_NVD_KEY: ${{ secrets.NVD_API_KEY != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -28,10 +26,14 @@ jobs:
         run: vulnhunter db update --all --source osv --db vulnhunter.db
 
       - name: Build NVD database
-        if: env.HAS_NVD_KEY == 'true'
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        run: vulnhunter db update --source nvd --nvd-api-key "$NVD_API_KEY" --db vulnhunter.db
+        run: |
+          if [ -n "$NVD_API_KEY" ]; then
+            vulnhunter db update --source nvd --nvd-api-key "$NVD_API_KEY" --db vulnhunter.db
+          else
+            echo "NVD_API_KEY not set, skipping NVD"
+          fi
 
       - name: Compress database
         run: gzip -9 -k vulnhunter.db
