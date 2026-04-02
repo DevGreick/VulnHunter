@@ -6,8 +6,17 @@ from pathlib import Path
 from typing import Any
 
 import requests
+from pydantic import BaseModel, Field, ValidationError
 
 logger = logging.getLogger(__name__)
+
+DISCLAIMER: str = "AI-assisted triage. Manual validation via POC required."
+
+
+class TriageResponse(BaseModel):
+    real_risk: str = Field(default="UNKNOWN", pattern=r"^(CRITICAL|HIGH|MEDIUM|LOW|IRRELEVANT|UNKNOWN)$")
+    analysis: str = Field(default="")
+    recommendation: str = Field(default="")
 
 SKIP_DIRS: set[str] = {
     "node_modules", "vendor", ".venv", "target", "__pycache__",
@@ -46,9 +55,13 @@ ECOSYSTEM_PATTERNS: dict[str, Callable[[str], re.Pattern[str]]] = {
     ),
 }
 
+SYSTEM_PROMPT: str = (
+    "You are a cybersecurity analyst specialized in dependency vulnerability triage. "
+    "You validate attack vectors against actual code usage. "
+    "Respond strictly in JSON with keys: real_risk, analysis, recommendation."
+)
+
 PROMPT_TEMPLATE: str = (
-    "You are a cybersecurity analyst. Analyze this vulnerability in the context of the project code.\n"
-    "\n"
     "VULNERABILITY:\n"
     "- ID: {vuln_id}\n"
     "- Package: {package_name} {version}\n"
@@ -58,13 +71,13 @@ PROMPT_TEMPLATE: str = (
     "CODE REFERENCES (where this package is used in the project):\n"
     "{code_refs_formatted}\n"
     "\n"
-    "Based on the code usage, assess:\n"
-    "1. real_risk: The actual risk level (CRITICAL, HIGH, MEDIUM, LOW, or IRRELEVANT)\n"
-    "2. analysis: Brief explanation of why (1-2 sentences)\n"
+    "Assess based on code usage:\n"
+    "1. real_risk: CRITICAL, HIGH, MEDIUM, LOW, or IRRELEVANT\n"
+    "2. analysis: Brief explanation (1-2 sentences)\n"
     "3. recommendation: What the developer should do\n"
     "\n"
     "IMPORTANT: Write analysis and recommendation in {language}.\n"
-    'Respond in JSON format: {{"real_risk": "...", "analysis": "...", "recommendation": "..."}}'
+    'Respond in JSON: {{"real_risk": "...", "analysis": "...", "recommendation": "..."}}'
 )
 
 
@@ -189,6 +202,7 @@ class TriageEngine:
             "real_risk": "UNKNOWN",
             "analysis": "Ollama unavailable or returned invalid response.",
             "recommendation": "Manual review required.",
+            "disclaimer": DISCLAIMER,
         }
 
         try:
@@ -196,6 +210,7 @@ class TriageEngine:
                 f"{self._ollama_url}/api/generate",
                 json={
                     "model": self._model,
+                    "system": SYSTEM_PROMPT,
                     "prompt": prompt,
                     "stream": False,
                     "format": "json",
@@ -221,18 +236,25 @@ class TriageEngine:
             return fallback
 
         try:
-            parsed: dict[str, str] = json.loads(raw_response)
+            parsed: dict[str, Any] = json.loads(raw_response)
+            validated: TriageResponse = TriageResponse(
+                real_risk=str(parsed.get("real_risk", "UNKNOWN")).upper(),
+                analysis=str(parsed.get("analysis", "")),
+                recommendation=str(parsed.get("recommendation", "")),
+            )
             return {
-                "real_risk": str(parsed.get("real_risk", "UNKNOWN")).upper(),
-                "analysis": str(parsed.get("analysis", "")),
-                "recommendation": str(parsed.get("recommendation", "")),
+                "real_risk": validated.real_risk,
+                "analysis": validated.analysis,
+                "recommendation": validated.recommendation,
+                "disclaimer": DISCLAIMER,
             }
-        except (json.JSONDecodeError, TypeError):
-            logger.error("Failed to parse LLM output as JSON, using raw text")
+        except (json.JSONDecodeError, TypeError, ValidationError) as exc:
+            logger.error("Failed to validate LLM output: %s", exc)
             return {
                 "real_risk": "UNKNOWN",
                 "analysis": raw_response[:500] if raw_response else "No response from LLM.",
                 "recommendation": "Manual review required.",
+                "disclaimer": DISCLAIMER,
             }
 
     def triage_vulnerability(
