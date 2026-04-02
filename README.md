@@ -57,7 +57,10 @@ VulnHunter scans dependency files across six ecosystems, queries a local vulnera
 git clone https://github.com/DevGreick/VulnHunter && cd VulnHunter
 pip install -e .
 
-# Download vulnerability data (requires internet, one-time)
+# Download pre-built database (fastest, requires internet once)
+vulnhunter db download
+
+# Or build from source data
 vulnhunter db update
 
 # Scan a project
@@ -83,6 +86,10 @@ vulnhunter db update [OPTIONS]
   --all               Download all ecosystems
   --source            osv | nvd | both (default: osv)
   --nvd-api-key       NVD API key (also reads from env var or .env file)
+
+vulnhunter db download [OPTIONS]
+  --db                Path to save the database
+  --repo              GitHub repo to download from (default: DevGreick/VulnHunter)
 
 vulnhunter db info
 ```
@@ -232,6 +239,10 @@ vulnhunter db update [OPÇÕES]
   --all               Baixar todos os ecossistemas
   --source            osv | nvd | both (padrão: osv)
   --nvd-api-key       API key do NVD (também lê de variável de ambiente ou .env)
+
+vulnhunter db download [OPTIONS]
+  --db                Path to save the database
+  --repo              GitHub repo to download from (default: DevGreick/VulnHunter)
 
 vulnhunter db info
 ```

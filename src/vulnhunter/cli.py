@@ -257,6 +257,88 @@ def db_update(
     db.close()
 
 
+@db_app.command("download")
+def db_download(
+    db_path: Path | None = typer.Option(None, "--db"),
+    repo: str = typer.Option(
+        "DevGreick/VulnHunter",
+        "--repo",
+        help="GitHub repo to download from.",
+    ),
+    verbose: bool = typer.Option(False, "--verbose", "-v"),
+) -> None:
+    _setup_logging(verbose)
+
+    import gzip
+    import tempfile
+
+    import requests
+
+    target = db_path or (Path.home() / ".vulnhunter" / "vulnhunter.db")
+    target.parent.mkdir(parents=True, exist_ok=True)
+
+    release_url = f"https://api.github.com/repos/{repo}/releases/tags/db-latest"
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Fetching release info...", total=None)
+
+        try:
+            resp = requests.get(release_url, timeout=30)
+            if resp.status_code != 200:
+                console.print(f"[bold red]Failed to fetch release:[/] HTTP {resp.status_code}")
+                raise typer.Exit(1)
+
+            assets = resp.json().get("assets", [])
+            db_asset = None
+            for asset in assets:
+                if asset["name"].endswith(".db.gz"):
+                    db_asset = asset
+                    break
+
+            if not db_asset:
+                console.print("[bold red]No database asset found in release.[/]")
+                raise typer.Exit(1)
+
+            download_url = db_asset["browser_download_url"]
+            size_mb = db_asset.get("size", 0) / (1024 * 1024)
+            progress.update(task, description=f"Downloading database ({size_mb:.1f} MB)...")
+
+            dl_resp = requests.get(download_url, timeout=300, stream=True)
+            if dl_resp.status_code != 200:
+                console.print(f"[bold red]Download failed:[/] HTTP {dl_resp.status_code}")
+                raise typer.Exit(1)
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".db.gz") as tmp:
+                for chunk in dl_resp.iter_content(chunk_size=8192):
+                    tmp.write(chunk)
+                tmp_path = Path(tmp.name)
+
+            progress.update(task, description="Extracting database...")
+
+            with gzip.open(tmp_path, "rb") as gz_in:
+                target.write_bytes(gz_in.read())
+
+            tmp_path.unlink(missing_ok=True)
+
+        except requests.RequestException as exc:
+            console.print(f"[bold red]Network error:[/] {exc}")
+            raise typer.Exit(1) from None
+
+    db = VulnDB(target)
+    stats = db.stats()
+    db.close()
+
+    console.print(
+        f"[bold green]Database ready:[/] {stats['vulnerabilities']} vulnerabilities, "
+        f"{stats['packages']} packages"
+    )
+    console.print(f"Saved to: {target}")
+
+
 @db_app.command("info")
 def db_info(
     db_path: Path | None = typer.Option(None, "--db"),
