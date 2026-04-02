@@ -17,9 +17,9 @@ logger = logging.getLogger("vulnhunter.sources.osv")
 OSV_BASE_URL = "https://osv-vulnerabilities.storage.googleapis.com"
 SUPPORTED_ECOSYSTEMS = ("PyPI", "npm", "Maven", "Packagist", "RubyGems", "Go")
 MAX_UNCOMPRESSED_SIZE = 50 * 1024 * 1024
-MAX_ZIP_TOTAL_SIZE = 500 * 1024 * 1024
-MAX_ZIP_MEMBERS = 50_000
-MAX_ZIP_DOWNLOAD = 200 * 1024 * 1024
+MAX_ZIP_TOTAL_SIZE = 2 * 1024 * 1024 * 1024
+MAX_ZIP_MEMBERS = 300_000
+MAX_ZIP_DOWNLOAD = 500 * 1024 * 1024
 REQUEST_TIMEOUT = 180
 
 
