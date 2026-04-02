@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo.png" alt="VulnHunter" width="180">
+  <img src="https://raw.githubusercontent.com/DevGreick/VulnHunter/main/logo.png" alt="VulnHunter" width="180">
 </p>
 
 

@@ -1,6 +1,6 @@
 [project]
 name = "vulnhunter"
-version = "2.0.0"
+version = "2.0.2"
 description = "Offline vulnerability scanner with AI triage — your dependencies have secrets, VulnHunter finds them."
 readme = "README.md"
 license = {text = "MIT"}
