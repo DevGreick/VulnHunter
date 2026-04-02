@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import locale
 import pathlib
 from typing import Any
 
@@ -23,22 +24,185 @@ BANNER = r"""
 
 CONFIG_DIR: pathlib.Path = pathlib.Path.home() / ".vulnhunter"
 CONFIG_FILE: pathlib.Path = CONFIG_DIR / "config.json"
+DB_FILE: pathlib.Path = CONFIG_DIR / "vulnhunter.db"
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "ai_triage_enabled": False,
     "model": "mistral",
     "ollama_url": "http://localhost:11434",
-    "nvd_api_key": "",
     "language": "en",
 }
 
 MODEL_TIERS: list[dict[str, str]] = [
-    {"name": "phi3", "params": "3.8B", "tier": "Light", "desc": "Basic triage"},
-    {"name": "mistral", "params": "7B", "tier": "Medium", "desc": "Code analysis (RECOMMENDED)"},
-    {"name": "llama3", "params": "8B", "tier": "Full", "desc": "Deep analysis"},
+    {
+        "name": "phi3", "params": "3.8B", "tier": "Light",
+        "desc_en": "Basic triage", "desc_pt": "Triagem basica",
+    },
+    {
+        "name": "mistral", "params": "7B", "tier": "Medium",
+        "desc_en": "Code analysis (RECOMMENDED)", "desc_pt": "Analise de codigo (RECOMENDADO)",
+    },
+    {
+        "name": "llama3", "params": "8B", "tier": "Full",
+        "desc_en": "Deep analysis", "desc_pt": "Analise profunda",
+    },
 ]
 
+_STRINGS: dict[str, dict[str, str]] = {
+    "welcome_title": {"en": "Setup", "pt": "Configuracao"},
+    "welcome_body": {
+        "en": (
+            "Welcome to VulnHunter!\n\n"
+            "This wizard will set up your environment for offline vulnerability scanning.\n"
+            "VulnHunter can use a local AI (Ollama) to analyze vulnerabilities in your code.\n\n"
+            "Let's check if everything is ready."
+        ),
+        "pt": (
+            "Bem-vindo ao VulnHunter!\n\n"
+            "Este assistente vai configurar seu ambiente para scan offline de vulnerabilidades.\n"
+            "O VulnHunter pode usar uma IA local (Ollama) para analisar vulnerabilidades no seu codigo.\n\n"
+            "Vamos verificar se esta tudo pronto."
+        ),
+    },
+    "checking_ollama": {
+        "en": "Checking for Ollama (local AI engine)...",
+        "pt": "Verificando Ollama (engine de IA local)...",
+    },
+    "ollama_detected": {
+        "en": "Ollama detected successfully.",
+        "pt": "Ollama detectado com sucesso.",
+    },
+    "ollama_not_found_title": {
+        "en": "Ollama Not Found",
+        "pt": "Ollama Nao Encontrado",
+    },
+    "ollama_not_found_body": {
+        "en": (
+            "VulnHunter uses Ollama for local AI-powered vulnerability triage.\n"
+            "Install it from: [bold cyan]https://ollama.com/download[/bold cyan]\n\n"
+            "After installing, start it with: [bold]ollama serve[/bold]\n"
+            "Then run [bold]vulnhunter init[/bold] again."
+        ),
+        "pt": (
+            "O VulnHunter usa o Ollama para triagem de vulnerabilidades com IA local.\n"
+            "Instale em: [bold cyan]https://ollama.com/download[/bold cyan]\n\n"
+            "Apos instalar, inicie com: [bold]ollama serve[/bold]\n"
+            "Depois rode [bold]vulnhunter init[/bold] novamente."
+        ),
+    },
+    "ollama_custom_url": {
+        "en": "Is Ollama running on a different address?",
+        "pt": "O Ollama esta rodando em outro endereco?",
+    },
+    "ollama_url_prompt": {
+        "en": "Ollama URL",
+        "pt": "URL do Ollama",
+    },
+    "ollama_found": {
+        "en": "Ollama detected!",
+        "pt": "Ollama detectado!",
+    },
+    "ollama_still_unreachable": {
+        "en": "Still not reachable. Continuing without AI.",
+        "pt": "Ainda nao acessivel. Continuando sem IA.",
+    },
+    "installed_models": {
+        "en": "Installed models:",
+        "pt": "Modelos instalados:",
+    },
+    "recommended_models": {
+        "en": "Recommended Models",
+        "pt": "Modelos Recomendados",
+    },
+    "enable_ai": {
+        "en": "Enable AI-powered vulnerability triage?",
+        "pt": "Ativar triagem de vulnerabilidades com IA?",
+    },
+    "select_model": {
+        "en": "Select model",
+        "pt": "Escolha o modelo",
+    },
+    "model_not_recommended": {
+        "en": "is not in the recommended list, but will be used if available in Ollama.",
+        "pt": "nao esta na lista recomendada, mas sera usado se disponivel no Ollama.",
+    },
+    "model_not_installed": {
+        "en": "is not installed in Ollama.",
+        "pt": "nao esta instalado no Ollama.",
+    },
+    "model_pull": {
+        "en": "Pull it with:",
+        "pt": "Baixe com:",
+    },
+    "db_not_found": {
+        "en": "Vulnerability database not found.",
+        "pt": "Banco de vulnerabilidades nao encontrado.",
+    },
+    "db_download_ask": {
+        "en": "Download pre-built database from GitHub? (recommended)",
+        "pt": "Baixar banco pre-construido do GitHub? (recomendado)",
+    },
+    "db_downloading": {
+        "en": "Downloading database...",
+        "pt": "Baixando banco de dados...",
+    },
+    "db_download_hint": {
+        "en": "Run [cyan]vulnhunter db download[/cyan] later to get the database.",
+        "pt": "Rode [cyan]vulnhunter db download[/cyan] depois para obter o banco.",
+    },
+    "setup_complete_title": {
+        "en": "Setup Complete",
+        "pt": "Configuracao Concluida",
+    },
+    "setup_complete_scan": {
+        "en": "Run [bold cyan]vulnhunter scan <target>[/bold cyan] to start scanning.",
+        "pt": "Rode [bold cyan]vulnhunter scan <target>[/bold cyan] para iniciar o scan.",
+    },
+    "ai_triage_label": {"en": "AI Triage", "pt": "Triagem IA"},
+    "enabled": {"en": "enabled", "pt": "ativado"},
+    "disabled": {"en": "disabled", "pt": "desativado"},
+    "nvd_ask": {
+        "en": "Do you have an NVD API key? (speeds up database updates)",
+        "pt": "Voce tem uma API key do NVD? (acelera atualizacoes do banco)",
+    },
+    "nvd_key_prompt": {
+        "en": "NVD API key",
+        "pt": "API key do NVD",
+    },
+    "nvd_saved": {
+        "en": "NVD API key saved securely in system keyring.",
+        "pt": "API key do NVD salva com seguranca no keyring do sistema.",
+    },
+    "nvd_save_failed": {
+        "en": "Could not save to keyring. Set NVD_API_KEY as environment variable instead.",
+        "pt": "Nao foi possivel salvar no keyring. Defina NVD_API_KEY como variavel de ambiente.",
+    },
+    "nvd_get_key": {
+        "en": "Get a free key at: [bold cyan]https://nvd.nist.gov/developers/request-an-api-key[/bold cyan]",
+        "pt": "Obtenha uma key gratuita em: [bold cyan]https://nvd.nist.gov/developers/request-an-api-key[/bold cyan]",
+    },
+    "nvd_skip": {
+        "en": "No problem. VulnHunter works without it, just slower on NVD updates.",
+        "pt": "Sem problema. O VulnHunter funciona sem ela, so fica mais lento nas atualizacoes do NVD.",
+    },
+}
+
 console = Console()
+
+
+def _detect_language() -> str:
+    try:
+        loc: str = locale.getdefaultlocale()[0] or ""
+    except ValueError:
+        loc = ""
+    if loc.startswith("pt"):
+        return "pt"
+    return "en"
+
+
+def _t(key: str, lang: str) -> str:
+    entry = _STRINGS.get(key, {})
+    return entry.get(lang, entry.get("en", key))
 
 
 def load_config() -> dict[str, Any]:
@@ -86,8 +250,8 @@ def needs_setup() -> bool:
     return not CONFIG_FILE.exists()
 
 
-def _show_model_table(installed_models: list[str]) -> None:
-    table = Table(title="Recommended Models")
+def _show_model_table(installed_models: list[str], lang: str) -> None:
+    table = Table(title=_t("recommended_models", lang))
     table.add_column("Tier", style="bold")
     table.add_column("Model", style="cyan")
     table.add_column("Parameters")
@@ -99,21 +263,22 @@ def _show_model_table(installed_models: list[str]) -> None:
             tier_info["name"] in m for m in installed_models
         )
         status: str = "[green]installed[/green]" if installed else "[yellow]not installed[/yellow]"
+        desc_key: str = f"desc_{lang}" if f"desc_{lang}" in tier_info else "desc_en"
         table.add_row(
             tier_info["tier"],
             tier_info["name"],
             tier_info["params"],
-            tier_info["desc"],
+            tier_info[desc_key],
             status,
         )
 
     console.print(table)
 
 
-def _show_installed_models(models: list[str]) -> None:
+def _show_installed_models(models: list[str], lang: str) -> None:
     if not models:
         return
-    console.print("\n[bold]Installed models:[/bold]")
+    console.print(f"\n[bold]{_t('installed_models', lang)}[/bold]")
     for model in models:
         console.print(f"  - {model}")
 
@@ -122,49 +287,54 @@ def run_wizard() -> dict[str, Any]:
     show_banner()
 
     config: dict[str, Any] = load_config()
+    lang: str = _detect_language()
+    config["language"] = lang
 
     console.print(
         Panel(
-            "Welcome to VulnHunter setup wizard.\n"
-            "This will configure your local environment for vulnerability scanning.",
-            title="Setup",
+            _t("welcome_body", lang),
+            title=_t("welcome_title", lang),
             border_style="cyan",
         )
     )
 
-    ollama_url: str = typer.prompt(
-        "Ollama server URL",
-        default=config["ollama_url"],
-        type=str,
-    )
-    config["ollama_url"] = ollama_url
-
-    console.print("\n[bold]Detecting Ollama...[/bold]")
+    console.print(f"\n[bold]{_t('checking_ollama', lang)}[/bold]")
+    ollama_url: str = config["ollama_url"]
     available, models = detect_ollama(ollama_url)
 
     if not available:
         console.print(
             Panel(
-                "[yellow]Ollama was not detected.[/yellow]\n\n"
-                "VulnHunter uses Ollama for local AI-powered vulnerability triage.\n"
-                "Install it from: [bold cyan]https://ollama.com/download[/bold cyan]\n\n"
-                "After installing, start it with: [bold]ollama serve[/bold]\n"
-                "Then re-run this wizard.",
-                title="Ollama Not Found",
+                f"[yellow]Ollama not found at {ollama_url}[/yellow]\n\n"
+                + _t("ollama_not_found_body", lang),
+                title=_t("ollama_not_found_title", lang),
                 border_style="yellow",
             )
         )
-        enable_ai: bool = False
+        custom_url: bool = typer.confirm(
+            _t("ollama_custom_url", lang),
+            default=False,
+        )
+        if custom_url:
+            ollama_url = typer.prompt(_t("ollama_url_prompt", lang), type=str)
+            config["ollama_url"] = ollama_url
+            available, models = detect_ollama(ollama_url)
+            if available:
+                console.print(f"[green]{_t('ollama_found', lang)}[/green]")
+            else:
+                console.print(f"[red]{_t('ollama_still_unreachable', lang)}[/red]")
+
+        enable_ai: bool = available if custom_url else False
         selected_model: str = config["model"]
     else:
-        console.print("[green]Ollama detected successfully.[/green]\n")
-        _show_installed_models(models)
+        console.print(f"[green]{_t('ollama_detected', lang)}[/green]\n")
+        _show_installed_models(models, lang)
         console.print()
-        _show_model_table(models)
+        _show_model_table(models, lang)
         console.print()
 
         enable_ai = typer.confirm(
-            "Enable AI-powered vulnerability triage?",
+            _t("enable_ai", lang),
             default=True,
         )
 
@@ -176,68 +346,70 @@ def run_wizard() -> dict[str, Any]:
                 break
 
         selected_model = typer.prompt(
-            "Select model",
+            _t("select_model", lang),
             default=default_model,
             type=str,
         )
 
-        model_choices: list[str] = [t["name"] for t in MODEL_TIERS]
-        if selected_model not in model_choices and not any(selected_model in m for m in models):
-            console.print(
-                f"[yellow]'{selected_model}' is not in the recommended list, "
-                f"but will be used if available in Ollama.[/yellow]"
-            )
-
-        if enable_ai and not any(selected_model in m for m in models):
-            console.print(
-                f"\n[yellow]Model '{selected_model}' is not installed in Ollama.[/yellow]"
-            )
-            console.print(
-                f"Pull it with: [bold]ollama pull {selected_model}[/bold]\n"
-            )
+        if not any(selected_model == m or selected_model in m for m in models):
+            exact_matches: list[str] = [m for m in models if selected_model in m]
+            if exact_matches:
+                selected_model = exact_matches[0]
+                console.print(f"[cyan]Using: {selected_model}[/cyan]")
+            else:
+                console.print(
+                    f"\n[yellow]'{selected_model}' {_t('model_not_installed', lang)}[/yellow]"
+                )
+                console.print(
+                    f"{_t('model_pull', lang)} [bold]ollama pull {selected_model}[/bold]\n"
+                )
 
     config["ai_triage_enabled"] = enable_ai
     config["model"] = selected_model
 
-    nvd_key: str = typer.prompt(
-        "NVD API key (optional, press Enter to skip)",
-        default=config.get("nvd_api_key", ""),
-        type=str,
-    )
-    config["nvd_api_key"] = nvd_key
+    has_nvd = typer.confirm(_t("nvd_ask", lang), default=False)
+    if has_nvd:
+        console.print(_t("nvd_get_key", lang))
+        nvd_key: str = typer.prompt(_t("nvd_key_prompt", lang), type=str, hide_input=True)
+        if nvd_key.strip():
+            try:
+                import keyring
 
-    language: str = typer.prompt(
-        "Preferred language",
-        default=config["language"],
-        type=str,
-    )
-    config["language"] = language
+                keyring.set_password("vulnhunter", "nvd_api_key", nvd_key.strip())
+                console.print(f"[green]{_t('nvd_saved', lang)}[/green]")
+            except Exception:
+                console.print(f"[yellow]{_t('nvd_save_failed', lang)}[/yellow]")
+    else:
+        console.print(_t("nvd_skip", lang))
 
-    db_path: pathlib.Path = pathlib.Path.home() / ".vulnhunter" / "vulndb"
-    if not db_path.exists():
-        console.print(
-            "\n[yellow]Vulnerability database not found.[/yellow]"
-        )
+    if not DB_FILE.exists():
+        console.print(f"\n[yellow]{_t('db_not_found', lang)}[/yellow]")
         download_db: bool = typer.confirm(
-            "Download vulnerability database now?",
+            _t("db_download_ask", lang),
             default=True,
         )
         if download_db:
-            console.print(
-                "[bold]Run [cyan]vulnhunter db update[/cyan] after setup to download the database.[/bold]"
-            )
+            console.print(f"[bold]{_t('db_downloading', lang)}[/bold]")
+            try:
+                from vulnhunter.cli import db_download
+
+                db_download(db_path=None, repo="DevGreick/VulnHunter", verbose=False)
+            except (SystemExit, Exception):
+                console.print(f"[bold]{_t('db_download_hint', lang)}[/bold]")
+        else:
+            console.print(f"[bold]{_t('db_download_hint', lang)}[/bold]")
 
     save_config(config)
 
+    ai_status = _t("enabled", lang) if config["ai_triage_enabled"] else _t("disabled", lang)
     console.print(
         Panel(
-            f"[green]Configuration saved to {CONFIG_FILE}[/green]\n\n"
-            f"  AI Triage:  {'enabled' if config['ai_triage_enabled'] else 'disabled'}\n"
+            f"[green]Config saved: {CONFIG_FILE}[/green]\n\n"
+            f"  {_t('ai_triage_label', lang)}:  {ai_status}\n"
             f"  Model:      {config['model']}\n"
-            f"  Ollama URL: {config['ollama_url']}\n"
-            f"  Language:   {config['language']}\n\n"
-            "Run [bold cyan]vulnhunter scan <target>[/bold cyan] to start scanning.",
-            title="Setup Complete",
+            f"  Ollama URL: {config['ollama_url']}\n\n"
+            + _t("setup_complete_scan", lang),
+            title=_t("setup_complete_title", lang),
             border_style="green",
         )
     )

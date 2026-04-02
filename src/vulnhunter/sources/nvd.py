@@ -32,12 +32,25 @@ def _load_dotenv_key() -> str:
     return ""
 
 
+def _load_keyring_key() -> str:
+    try:
+        import keyring
+
+        value: str | None = keyring.get_password("vulnhunter", "nvd_api_key")
+        return value or ""
+    except Exception:
+        return ""
+
+
 def _resolve_api_key(explicit_key: str = "") -> str:
     if explicit_key:
         return explicit_key
     from_env = os.environ.get("NVD_API_KEY", "")
     if from_env:
         return from_env
+    from_keyring = _load_keyring_key()
+    if from_keyring:
+        return from_keyring
     return _load_dotenv_key()
 
 
