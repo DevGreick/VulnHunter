@@ -11,7 +11,7 @@ permissions:
 jobs:
   build-db:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
 
@@ -25,12 +25,14 @@ jobs:
       - name: Build OSV database
         run: vulnhunter db update --all --source osv --db vulnhunter.db
 
+      - name: Build NVD database
+        if: env.NVD_API_KEY != ''
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: vulnhunter db update --source nvd --nvd-api-key "$NVD_API_KEY" --db vulnhunter.db
+
       - name: Compress database
         run: gzip -9 -k vulnhunter.db
-
-      - name: Get date tag
-        id: date
-        run: echo "tag=db-$(date -u +%Y%m%d)" >> "$GITHUB_OUTPUT"
 
       - name: Create release
         env:
