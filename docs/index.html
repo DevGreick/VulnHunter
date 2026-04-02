@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VulnHunter — Offline Vulnerability Scanner</title>
+    <meta name="description" content="Scan your dependencies for known vulnerabilities without sending data anywhere. AI-powered triage with local LLMs.">
+    <meta name="theme-color" content="#00e5ff">
+    <meta property="og:title" content="VulnHunter — Offline Vulnerability Scanner">
+    <meta property="og:description" content="Scan dependencies for known CVEs offline. AI triage via Ollama. Multi-ecosystem support.">
+    <meta property="og:image" content="assets/logo.png">
+    <meta property="og:type" content="website">
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <canvas id="particles"></canvas>
+    <div class="scanline"></div>
+
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="#hero" class="nav-logo">
+                <span class="nav-logo-icon">&#9632;</span> VulnHunter
+            </a>
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
+                <span></span><span></span><span></span>
+            </button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="#features" data-i18n="nav_features">Features</a></li>
+                <li><a href="#quickstart" data-i18n="nav_quickstart">Quick Start</a></li>
+                <li><a href="#examples" data-i18n="nav_examples">Examples</a></li>
+                <li><a href="#ecosystems" data-i18n="nav_ecosystems">Ecosystems</a></li>
+                <li><a href="#ai-triage" data-i18n="nav_ai_triage">AI Triage</a></li>
+                <li><a href="https://github.com/DevGreick/VulnHunter" target="_blank" rel="noopener" class="nav-github">GitHub</a></li>
+                <li><button class="lang-toggle" id="langToggle" aria-label="Toggle language">EN</button></li>
+            </ul>
+        </div>
+    </nav>
+
+    <section class="hero" id="hero">
+        <div class="hero-content">
+            <div class="hero-badge reveal">v2.0</div>
+            <pre class="hero-ascii reveal">
+██╗   ██╗██╗   ██╗██╗     ███╗   ██╗██╗  ██╗██╗   ██╗███╗   ██╗████████╗███████╗██████╗
+██║   ██║██║   ██║██║     ████╗  ██║██║  ██║██║   ██║████╗  ██║╚══██╔══╝██╔════╝██╔══██╗
+██║   ██║██║   ██║██║     ██╔██╗ ██║███████║██║   ██║██╔██╗ ██║   ██║   █████╗  ██████╔╝
+╚██╗ ██╔╝██║   ██║██║     ██║╚██╗██║██╔══██║██║   ██║██║╚██╗██║   ██║   ██╔══╝  ██╔══██╗
+ ╚████╔╝ ╚██████╔╝███████╗██║ ╚████║██║  ██║╚██████╔╝██║ ╚████║   ██║   ███████╗██║  ██║
+  ╚═══╝   ╚═════╝ ╚══════╝╚═╝  ╚═══╝╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝   ╚═╝   ╚══════╝╚═╝  ╚═╝
+            </pre>
+            <p class="hero-tagline reveal" data-i18n="hero_tagline">Offline Vulnerability Scanner with AI Triage</p>
+            <p class="hero-sub reveal" data-i18n="hero_sub">Scan your dependencies for known CVEs without sending data anywhere.<br>AI-powered analysis runs entirely on your machine.</p>
+            <div class="hero-cta reveal">
+                <a href="#quickstart" class="btn btn-primary" data-i18n="get_started">Get Started</a>
+                <a href="https://github.com/DevGreick/VulnHunter" target="_blank" rel="noopener" class="btn btn-outline">
+                    <svg class="btn-icon" viewBox="0 0 16 16" width="18" height="18"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                    <span data-i18n="view_github">View on GitHub</span>
+                </a>
+            </div>
+        </div>
+        <div class="hero-scroll">
+            <span>scroll</span>
+            <div class="scroll-line"></div>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <div class="container">
+            <h2 class="section-title reveal">
+                <span class="section-tag" data-i18n="tag_features">&lt;features&gt;</span>
+                <span data-i18n="why_vulnhunter">Why VulnHunter?</span>
+            </h2>
+            <div class="features-grid">
+                <div class="feature-card reveal">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" width="32" height="32"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                    </div>
+                    <h3 data-i18n="f_offline_title">Offline First</h3>
+                    <p data-i18n="f_offline_desc">Your code never leaves your machine. All scanning happens locally against a pre-built vulnerability database. Air-gapped environments welcome.</p>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" width="32" height="32"><path fill="currentColor" d="M21 10.12h-6.78l2.74-2.82c-2.73-2.7-7.15-2.8-9.88-.1-2.73 2.71-2.73 7.08 0 9.79s7.15 2.71 9.88 0C18.32 15.65 19 14.08 19 12.1h2c0 1.98-.88 4.55-2.64 6.29-3.51 3.48-9.21 3.48-12.72 0-3.5-3.47-3.5-9.11 0-12.58 3.51-3.47 9.14-3.49 12.65-.06L21 3v7.12z"/></svg>
+                    </div>
+                    <h3 data-i18n="f_ai_title">AI-Powered Triage</h3>
+                    <p data-i18n="f_ai_desc">Local LLM analysis via Ollama. The AI reads your actual source code, correlates with CVE data, and tells you exactly where you're exposed.</p>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" width="32" height="32"><path fill="currentColor" d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/></svg>
+                    </div>
+                    <h3 data-i18n="f_multi_title">Multi-Ecosystem</h3>
+                    <p data-i18n="f_multi_desc">Python, Node.js, Go, Rust, Java, PHP, Ruby — VulnHunter parses lockfiles, manifests, and dependency trees across 7 ecosystems and 15+ file formats.</p>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" width="32" height="32"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                    </div>
+                    <h3 data-i18n="f_sarif_title">SARIF Export</h3>
+                    <p data-i18n="f_sarif_desc">Generate SARIF 2.1.0 reports for GitHub Code Scanning integration and VS Code SARIF Viewer. Drop findings directly into your workflow.</p>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" width="32" height="32"><path fill="currentColor" d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                    </div>
+                    <h3 data-i18n="f_secure_title">Secure by Design</h3>
+                    <p data-i18n="f_secure_desc">API keys stored in your OS keyring — never in plaintext. No secrets in logs, no data exfiltration. Built by a cybersecurity professional.</p>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" width="32" height="32"><path fill="currentColor" d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3h7zM7 9H4V5h3v4zm10 6h3v4h-3v-4zm0-10h3v4h-3V5z"/></svg>
+                    </div>
+                    <h3 data-i18n="f_transitive_title">Transitive Dependencies</h3>
+                    <p data-i18n="f_transitive_desc">Goes beyond direct deps. Integrates with pipdeptree, npm, mvn, composer, and go to scan the full dependency tree for hidden vulnerabilities.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="quickstart" id="quickstart">
+        <div class="container">
+            <h2 class="section-title reveal">
+                <span class="section-tag" data-i18n="tag_quickstart">&lt;quickstart&gt;</span>
+                <span data-i18n="quickstart_title">Up and Running in 60 Seconds</span>
+            </h2>
+            <div class="terminal-grid">
+                <div class="terminal reveal">
+                    <div class="terminal-header">
+                        <div class="terminal-dots">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
+                        </div>
+                        <span class="terminal-title">Installation</span>
+                    </div>
+                    <div class="terminal-body">
+                        <div class="term-line"><span class="term-prompt">$</span> <span class="term-cmd">pip install vulnhunter</span></div>
+                        <div class="term-line"><span class="term-output">Successfully installed vulnhunter-2.0.0</span></div>
+                        <div class="term-line">&nbsp;</div>
+                        <div class="term-line"><span class="term-prompt">$</span> <span class="term-cmd">vulnhunter init</span></div>
+                        <div class="term-line"><span class="term-output term-cyan">VulnHunter v2.0</span></div>
+                        <div class="term-line"><span class="term-output term-muted">Checking Ollama... ✓</span></div>
+                        <div class="term-line"><span class="term-output term-muted">Downloading database... ✓</span></div>
+                        <div class="term-line"><span class="term-output term-green">Setup complete!</span></div>
+                    </div>
+                </div>
+
+                <div class="terminal reveal">
+                    <div class="terminal-header">
+                        <div class="terminal-dots">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
+                        </div>
+                        <span class="terminal-title">First Scan</span>
+                    </div>
+                    <div class="terminal-body">
+                        <div class="term-line"><span class="term-prompt">$</span> <span class="term-cmd">vulnhunter scan .</span></div>
+                        <div class="term-line"><span class="term-output term-muted">Scanning dependencies...</span></div>
+                        <div class="term-line"><span class="term-output term-muted">Found: requirements.txt, package-lock.json</span></div>
+                        <div class="term-line">&nbsp;</div>
+                        <div class="term-line"><span class="term-output term-white">╭─────────────── Scan Results ───────────────╮</span></div>
+                        <div class="term-line"><span class="term-output term-white">│</span> <span class="term-output term-red">CRITICAL</span>  <span class="term-output">2</span>  <span class="term-output term-white">│</span></div>
+                        <div class="term-line"><span class="term-output term-white">│</span> <span class="term-output term-yellow">HIGH</span>      <span class="term-output">5</span>  <span class="term-output term-white">│</span></div>
+                        <div class="term-line"><span class="term-output term-white">│</span> <span class="term-output term-blue">MEDIUM</span>    <span class="term-output">3</span>  <span class="term-output term-white">│</span></div>
+                        <div class="term-line"><span class="term-output term-white">│</span> <span class="term-output term-green">LOW</span>       <span class="term-output">1</span>  <span class="term-output term-white">│</span></div>
+                        <div class="term-line"><span class="term-output term-white">╰────────────────────────────────────────────╯</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="examples" id="examples">
+        <div class="container">
+            <h2 class="section-title reveal">
+                <span class="section-tag" data-i18n="tag_examples">&lt;examples&gt;</span>
+                <span data-i18n="examples_title">Usage Examples</span>
+            </h2>
+            <div class="examples-list">
+                <div class="example-item reveal">
+                    <div class="example-info">
+                        <h3 data-i18n="ex_basic_title">Basic Scan</h3>
+                        <p data-i18n="ex_basic_desc">Point VulnHunter at any project directory. It auto-detects lockfiles and manifests across all supported ecosystems.</p>
+                    </div>
+                    <div class="terminal terminal-sm">
+                        <div class="terminal-header">
+                            <div class="terminal-dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                            <span class="terminal-title">basic-scan</span>
+                            <button class="copy-btn" data-copy="vulnhunter scan /path/to/project">Copy</button>
+                        </div>
+                        <div class="terminal-body">
+                            <div class="term-line"><span class="term-prompt">$</span> <span class="term-cmd">vulnhunter scan /path/to/project</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="example-item reveal">
+                    <div class="example-info">
+                        <h3 data-i18n="ex_ai_title">AI-Powered Triage</h3>
+                        <p data-i18n="ex_ai_desc_html">Add <code>--ai-triage</code> to let a local LLM analyze each vulnerability against your actual codebase. It identifies which CVEs are actually exploitable in your context.</p>
+                    </div>
+                    <div class="terminal terminal-sm">
+                        <div class="terminal-header">
+                            <div class="terminal-dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                            <span class="terminal-title">ai-triage</span>
+                            <button class="copy-btn" data-copy="vulnhunter scan . --ai-triage --model llama3:8b">Copy</button>
+                        </div>
+                        <div class="terminal-body">
+                            <div class="term-line"><span class="term-prompt">$</span> <span class="term-cmd">vulnhunter scan . --ai-triage --model llama3:8b</span></div>
+                            <div class="term-line"><span class="term-output term-muted">AI Triage ━━━━━━━━━━━━━━━━ 100%</span></div>
+                            <div class="term-line"><span class="term-output term-cyan">┃ CVE-2024-1234 │ CRITICAL → LOW (not reachable in your code)</span></div>
+                            <div class="term-line"><span class="term-output term-yellow">┃ CVE-2024-5678 │ HIGH → HIGH (endpoint /api/auth exposed)</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="example-item reveal">
+                    <div class="example-info">
+                        <h3 data-i18n="ex_sarif_title">SARIF Export</h3>
+                        <p data-i18n="ex_sarif_desc">Export results in SARIF 2.1.0 format for GitHub Code Scanning or VS Code SARIF Viewer. Integrates directly into your CI/CD pipeline.</p>
+                    </div>
+                    <div class="terminal terminal-sm">
+                        <div class="terminal-header">
+                            <div class="terminal-dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                            <span class="terminal-title">sarif-export</span>
+                            <button class="copy-btn" data-copy="vulnhunter scan . --format sarif -o results.sarif">Copy</button>
+                        </div>
+                        <div class="terminal-body">
+                            <div class="term-line"><span class="term-prompt">$</span> <span class="term-cmd">vulnhunter scan . --format sarif -o results.sarif</span></div>
+                            <div class="term-line"><span class="term-output term-green">✓ SARIF report saved to results.sarif</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="example-item reveal">
+                    <div class="example-info">
+                        <h3 data-i18n="ex_db_title">Database Management</h3>
+                        <p data-i18n="ex_db_desc">Download the pre-built database from GitHub Releases or build your own from OSV and NVD sources. Auto-updated weekly via GitHub Actions.</p>
+                    </div>
+                    <div class="terminal terminal-sm">
+                        <div class="terminal-header">
+                            <div class="terminal-dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                            <span class="terminal-title">database</span>
+                            <button class="copy-btn" data-copy="vulnhunter db download">Copy</button>
+                        </div>
+                        <div class="terminal-body">
+                            <div class="term-line"><span class="term-prompt">$</span> <span class="term-cmd">vulnhunter db download</span></div>
+                            <div class="term-line"><span class="term-output term-muted">Downloading from DevGreick/VulnHunter releases...</span></div>
+                            <div class="term-line"><span class="term-output term-green">✓ Database saved to ~/.vulnhunter/vulnhunter.db</span></div>
+                            <div class="term-line">&nbsp;</div>
+                            <div class="term-line"><span class="term-prompt">$</span> <span class="term-cmd">vulnhunter db update --all --source osv</span></div>
+                            <div class="term-line"><span class="term-output term-muted">Fetching OSV data for all ecosystems...</span></div>
+                            <div class="term-line"><span class="term-output term-green">✓ 248,391 vulnerabilities indexed</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="example-item reveal">
+                    <div class="example-info">
+                        <h3 data-i18n="ex_config_title">Configuration</h3>
+                        <p data-i18n="ex_config_desc">Manage settings, API keys, and AI preferences. NVD keys are stored securely in your OS keyring — never in plaintext config files.</p>
+                    </div>
+                    <div class="terminal terminal-sm">
+                        <div class="terminal-header">
+                            <div class="terminal-dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                            <span class="terminal-title">config</span>
+                            <button class="copy-btn" data-copy="vulnhunter config">Copy</button>
+                        </div>
+                        <div class="terminal-body">
+                            <div class="term-line"><span class="term-prompt">$</span> <span class="term-cmd">vulnhunter config</span></div>
+                            <div class="term-line"><span class="term-output term-white">┌──────────── Current Configuration ────────────┐</span></div>
+                            <div class="term-line"><span class="term-output term-white">│</span> <span class="term-output">AI Triage</span>    <span class="term-output term-green">enabled</span>     <span class="term-output term-white">│</span></div>
+                            <div class="term-line"><span class="term-output term-white">│</span> <span class="term-output">Model</span>        <span class="term-output term-cyan">llama3:8b</span>   <span class="term-output term-white">│</span></div>
+                            <div class="term-line"><span class="term-output term-white">│</span> <span class="term-output">NVD API Key</span>  <span class="term-output term-green">✓ saved</span>     <span class="term-output term-white">│</span></div>
+                            <div class="term-line"><span class="term-output term-white">└───────────────────────────────────────────────┘</span></div>
+                            <div class="term-line">&nbsp;</div>
+                            <div class="term-line"><span class="term-prompt">$</span> <span class="term-cmd">vulnhunter config set-nvd-key</span></div>
+                            <div class="term-line"><span class="term-output">NVD API key: ********</span></div>
+                            <div class="term-line"><span class="term-output term-green">✓ NVD API key saved securely in system keyring.</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="example-item reveal">
+                    <div class="example-info">
+                        <h3 data-i18n="ex_cicd_title">CI/CD Integration</h3>
+                        <p data-i18n="ex_cicd_desc">Add VulnHunter to your GitHub Actions pipeline. Fail builds on critical vulnerabilities and upload SARIF to GitHub Security tab.</p>
+                    </div>
+                    <div class="terminal terminal-sm">
+                        <div class="terminal-header">
+                            <div class="terminal-dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                            <span class="terminal-title">.github/workflows/security.yml</span>
+                            <button class="copy-btn" data-copy="- name: Scan dependencies
+  run: |
+    pip install vulnhunter
+    vulnhunter scan . --format sarif -o results.sarif
+
+- name: Upload SARIF
+  uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: results.sarif">Copy</button>
+                        </div>
+                        <div class="terminal-body">
+                            <div class="term-line"><span class="term-yaml-key">- name:</span> <span class="term-output">Scan dependencies</span></div>
+                            <div class="term-line"><span class="term-yaml-key">  run:</span> <span class="term-output term-muted">|</span></div>
+                            <div class="term-line"><span class="term-output">    pip install vulnhunter</span></div>
+                            <div class="term-line"><span class="term-output">    vulnhunter scan . --format sarif -o results.sarif</span></div>
+                            <div class="term-line">&nbsp;</div>
+                            <div class="term-line"><span class="term-yaml-key">- name:</span> <span class="term-output">Upload SARIF</span></div>
+                            <div class="term-line"><span class="term-yaml-key">  uses:</span> <span class="term-output">github/codeql-action/upload-sarif@v3</span></div>
+                            <div class="term-line"><span class="term-yaml-key">  with:</span></div>
+                            <div class="term-line"><span class="term-output">    </span><span class="term-yaml-key">sarif_file:</span> <span class="term-output">results.sarif</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="ecosystems" id="ecosystems">
+        <div class="container">
+            <h2 class="section-title reveal">
+                <span class="section-tag" data-i18n="tag_ecosystems">&lt;ecosystems&gt;</span>
+                <span data-i18n="eco_title">Supported Ecosystems</span>
+            </h2>
+            <div class="eco-table-wrap reveal">
+                <table class="eco-table">
+                    <thead>
+                        <tr>
+                            <th data-i18n="eco_th1">Ecosystem</th>
+                            <th data-i18n="eco_th2">Files Detected</th>
+                            <th data-i18n="eco_th3">Transitive Deps</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="eco-badge python">Python</span></td>
+                            <td><code>requirements.txt</code> <code>Pipfile.lock</code> <code>poetry.lock</code> <code>uv.lock</code></td>
+                            <td><code>pipdeptree</code></td>
+                        </tr>
+                        <tr>
+                            <td><span class="eco-badge node">Node.js</span></td>
+                            <td><code>package-lock.json</code> <code>yarn.lock</code> <code>pnpm-lock.yaml</code></td>
+                            <td><code>npm ls</code></td>
+                        </tr>
+                        <tr>
+                            <td><span class="eco-badge go">Go</span></td>
+                            <td><code>go.sum</code> <code>go.mod</code></td>
+                            <td><code>go mod graph</code></td>
+                        </tr>
+                        <tr>
+                            <td><span class="eco-badge rust">Rust</span></td>
+                            <td><code>Cargo.lock</code></td>
+                            <td>Built-in</td>
+                        </tr>
+                        <tr>
+                            <td><span class="eco-badge java">Java</span></td>
+                            <td><code>pom.xml</code> <code>build.gradle</code></td>
+                            <td><code>mvn dependency:tree</code></td>
+                        </tr>
+                        <tr>
+                            <td><span class="eco-badge php">PHP</span></td>
+                            <td><code>composer.lock</code></td>
+                            <td><code>composer show</code></td>
+                        </tr>
+                        <tr>
+                            <td><span class="eco-badge ruby">Ruby</span></td>
+                            <td><code>Gemfile.lock</code></td>
+                            <td><code>bundle list</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section class="ai-triage" id="ai-triage">
+        <div class="container">
+            <h2 class="section-title reveal">
+                <span class="section-tag" data-i18n="tag_ai_triage">&lt;ai-triage&gt;</span>
+                <span data-i18n="ai_section_title">AI-Powered Vulnerability Triage</span>
+            </h2>
+            <div class="ai-grid">
+                <div class="ai-info reveal">
+                    <h3 data-i18n="ai_how">How It Works</h3>
+                    <div class="ai-steps">
+                        <div class="ai-step">
+                            <div class="step-num">01</div>
+                            <div class="step-content">
+                                <h4 data-i18n="ai_step1_title">Scan</h4>
+                                <p data-i18n="ai_step1_desc">VulnHunter identifies vulnerable dependencies in your project.</p>
+                            </div>
+                        </div>
+                        <div class="ai-step">
+                            <div class="step-num">02</div>
+                            <div class="step-content">
+                                <h4 data-i18n="ai_step2_title">Analyze</h4>
+                                <p data-i18n="ai_step2_desc">The local LLM reads your source code and correlates it with CVE details.</p>
+                            </div>
+                        </div>
+                        <div class="ai-step">
+                            <div class="step-num">03</div>
+                            <div class="step-content">
+                                <h4 data-i18n="ai_step3_title">Triage</h4>
+                                <p data-i18n="ai_step3_desc">Each vulnerability gets a contextual risk assessment: is it actually reachable in your code?</p>
+                            </div>
+                        </div>
+                        <div class="ai-step">
+                            <div class="step-num">04</div>
+                            <div class="step-content">
+                                <h4 data-i18n="ai_step4_title">Prioritize</h4>
+                                <p data-i18n="ai_step4_desc">Focus on what matters. Stop wasting time on CVEs that don't affect you.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ai-models">
+                        <h3 data-i18n="ai_rec_models">Recommended Models</h3>
+                        <div class="model-cards">
+                            <div class="model-card">
+                                <span class="model-tier light">Light</span>
+                                <span class="model-name">phi3</span>
+                                <span class="model-params">3.8B</span>
+                                <p data-i18n="ai_model_phi3">Basic triage. Low resource usage.</p>
+                            </div>
+                            <div class="model-card recommended">
+                                <span class="model-tier medium">Recommended</span>
+                                <span class="model-name">mistral</span>
+                                <span class="model-params">7B</span>
+                                <p data-i18n="ai_model_mistral">Best balance of speed and accuracy.</p>
+                            </div>
+                            <div class="model-card">
+                                <span class="model-tier full">Full</span>
+                                <span class="model-name">llama3</span>
+                                <span class="model-params">8B</span>
+                                <p data-i18n="ai_model_llama3">Deep analysis. Best results.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="terminal reveal">
+                    <div class="terminal-header">
+                        <div class="terminal-dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                        <span class="terminal-title">AI Triage Output</span>
+                    </div>
+                    <div class="terminal-body">
+                        <div class="term-line"><span class="term-prompt">$</span> <span class="term-cmd">vulnhunter scan . --ai-triage</span></div>
+                        <div class="term-line"><span class="term-output term-muted">Scanning dependencies... found 3 vulnerabilities</span></div>
+                        <div class="term-line"><span class="term-output term-muted">Running AI triage with mistral...</span></div>
+                        <div class="term-line">&nbsp;</div>
+                        <div class="term-line"><span class="term-output term-cyan">━━━ AI Triage Results ━━━</span></div>
+                        <div class="term-line">&nbsp;</div>
+                        <div class="term-line"><span class="term-output term-red">■ CVE-2024-3651 — idna 3.6</span></div>
+                        <div class="term-line"><span class="term-output term-white">  Severity: HIGH → </span><span class="term-output term-red">HIGH (confirmed)</span></div>
+                        <div class="term-line"><span class="term-output term-muted">  The application processes user-supplied URLs in</span></div>
+                        <div class="term-line"><span class="term-output term-muted">  api/handlers.py:42 using idna.encode() directly.</span></div>
+                        <div class="term-line"><span class="term-output term-muted">  This is exploitable via crafted internationalized</span></div>
+                        <div class="term-line"><span class="term-output term-muted">  domain names.</span></div>
+                        <div class="term-line"><span class="term-output term-green">  Fix: upgrade idna to ≥3.7</span></div>
+                        <div class="term-line">&nbsp;</div>
+                        <div class="term-line"><span class="term-output term-yellow">■ CVE-2024-1234 — requests 2.31.0</span></div>
+                        <div class="term-line"><span class="term-output term-white">  Severity: CRITICAL → </span><span class="term-output term-blue">LOW (not reachable)</span></div>
+                        <div class="term-line"><span class="term-output term-muted">  The vulnerable code path requires SOCKS proxy</span></div>
+                        <div class="term-line"><span class="term-output term-muted">  usage. No SOCKS configuration found in codebase.</span></div>
+                        <div class="term-line"><span class="term-output term-muted">  Risk is minimal in current context.</span></div>
+                        <div class="term-line">&nbsp;</div>
+                        <div class="term-line"><span class="term-output term-yellow">■ CVE-2024-5678 — flask 2.3.2</span></div>
+                        <div class="term-line"><span class="term-output term-white">  Severity: MEDIUM → </span><span class="term-output term-yellow">MEDIUM (conditional)</span></div>
+                        <div class="term-line"><span class="term-output term-muted">  Debug mode detected in config.py:8. Vulnerability</span></div>
+                        <div class="term-line"><span class="term-output term-muted">  is exploitable only if DEBUG=True in production.</span></div>
+                        <div class="term-line"><span class="term-output term-green">  Fix: ensure DEBUG=False in production config</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="install" id="install">
+        <div class="container">
+            <h2 class="section-title reveal">
+                <span class="section-tag" data-i18n="tag_install">&lt;install&gt;</span>
+                <span data-i18n="install_title">Installation</span>
+            </h2>
+            <div class="install-grid">
+                <div class="install-card reveal">
+                    <h3>
+                        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                        <span data-i18n="install_pypi">PyPI (recommended)</span>
+                    </h3>
+                    <div class="terminal terminal-sm">
+                        <div class="terminal-header">
+                            <div class="terminal-dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                            <button class="copy-btn" data-copy="pip install vulnhunter">Copy</button>
+                        </div>
+                        <div class="terminal-body">
+                            <div class="term-line"><span class="term-prompt">$</span> <span class="term-cmd">pip install vulnhunter</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="install-card reveal">
+                    <h3>
+                        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                        <span data-i18n="install_uv">With uv (faster)</span>
+                    </h3>
+                    <div class="terminal terminal-sm">
+                        <div class="terminal-header">
+                            <div class="terminal-dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                            <button class="copy-btn" data-copy="uv pip install vulnhunter">Copy</button>
+                        </div>
+                        <div class="terminal-body">
+                            <div class="term-line"><span class="term-prompt">$</span> <span class="term-cmd">uv pip install vulnhunter</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="install-card reveal">
+                    <h3>
+                        <svg class="btn-icon" viewBox="0 0 16 16" width="20" height="20"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                        <span data-i18n="install_source">From Source</span>
+                    </h3>
+                    <div class="terminal terminal-sm">
+                        <div class="terminal-header">
+                            <div class="terminal-dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                            <button class="copy-btn" data-copy="git clone https://github.com/DevGreick/VulnHunter.git
+cd VulnHunter
+uv venv .venv && source .venv/bin/activate
+uv pip install -e .">Copy</button>
+                        </div>
+                        <div class="terminal-body">
+                            <div class="term-line"><span class="term-prompt">$</span> <span class="term-cmd">git clone https://github.com/DevGreick/VulnHunter.git</span></div>
+                            <div class="term-line"><span class="term-prompt">$</span> <span class="term-cmd">cd VulnHunter</span></div>
+                            <div class="term-line"><span class="term-prompt">$</span> <span class="term-cmd">uv venv .venv && source .venv/bin/activate</span></div>
+                            <div class="term-line"><span class="term-prompt">$</span> <span class="term-cmd">uv pip install -e .</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="prereqs reveal">
+                <h3 data-i18n="prereqs_title">Prerequisites</h3>
+                <ul>
+                    <li data-i18n="prereq_python_html"><strong>Python 3.8+</strong> — Required</li>
+                    <li data-i18n="prereq_ollama_html"><strong>Ollama</strong> — Optional, for AI triage. <a href="https://ollama.com/download" target="_blank" rel="noopener">Download here</a></li>
+                    <li data-i18n="prereq_nvd_html"><strong>NVD API Key</strong> — Optional, speeds up database updates. <a href="https://nvd.nist.gov/developers/request-an-api-key" target="_blank" rel="noopener">Free key</a></li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <span class="glitch-sm" data-text="VulnHunter">VulnHunter</span>
+                    <p data-i18n="footer_built_html">Built with security in mind by <a href="https://github.com/DevGreick" target="_blank" rel="noopener">DevGreick</a></p>
+                </div>
+                <div class="footer-links">
+                    <a href="https://github.com/DevGreick/VulnHunter" target="_blank" rel="noopener">GitHub</a>
+                    <a href="https://github.com/DevGreick/VulnHunter/issues" target="_blank" rel="noopener">Issues</a>
+                    <a href="https://github.com/DevGreick/VulnHunter/releases" target="_blank" rel="noopener">Releases</a>
+                    <a href="https://pypi.org/project/vulnhunter/" target="_blank" rel="noopener">PyPI</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>MIT License &copy; 2024-2026 DevGreick</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
