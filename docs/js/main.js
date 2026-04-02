@@ -118,7 +118,7 @@ const I18N = {
         ex_config_title: "Configuracao",
         ex_config_desc: "Gerencie configuracoes, chaves de API e preferencias de IA. Chaves NVD sao armazenadas com seguranca no keyring do sistema — nunca em arquivos de config.",
         ex_cicd_title: "Integracao CI/CD",
-        ex_cicd_desc: "Adicione o VulnHunter ao seu pipeline do GitHub Actions. Falhe builds em vulnerabilidades criticas e envie SARIF para a aba Security do GitHub.",
+        ex_cicd_desc: "Adicione o VulnHunter ao seu pipeline do GitHub Actions. Bloqueie builds com vulnerabilidades criticas e envie SARIF para a aba Security do GitHub.",
         eco_title: "Ecossistemas Suportados",
         eco_th1: "Ecossistema",
         eco_th2: "Arquivos Detectados",
