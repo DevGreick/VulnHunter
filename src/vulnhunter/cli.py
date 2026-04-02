@@ -27,6 +27,7 @@ app = typer.Typer(
     help="Offline vulnerability scanner for project dependencies.",
     invoke_without_command=True,
     callback=_default_callback,
+    add_completion=False,
 )
 db_app = typer.Typer(help="Manage the local vulnerability database.")
 app.add_typer(db_app, name="db")
@@ -101,14 +102,14 @@ def _detect_ecosystems(deps: list[Dependency]) -> list[str]:
     return sorted(seen)
 
 
-@app.command()
+@app.command(help="Run the setup wizard to configure VulnHunter.")
 def init() -> None:
     from vulnhunter.onboarding import run_wizard
 
     run_wizard()
 
 
-@app.command()
+@app.command(help="Show or change current settings.")
 def config() -> None:
     from vulnhunter.onboarding import load_config, run_wizard, show_banner
 
@@ -130,52 +131,61 @@ def config() -> None:
         run_wizard()
 
 
-@app.command()
+@app.command(
+    help="Scan a project for known vulnerabilities.",
+    epilog=(
+        "Examples:\n\n"
+        "  vulnhunter scan .                        Scan current directory\n"
+        "  vulnhunter scan . --ai-triage             Scan + AI analysis via Ollama\n"
+        "  vulnhunter scan . -s critical             Show only critical vulnerabilities\n"
+        "  vulnhunter scan . -f sarif -o report.sarif Export for GitHub Code Scanning\n"
+    ),
+)
 def scan(
     paths: list[Path] = typer.Argument(
         ...,
-        help="Files or directories to scan for dependency files.",
+        help="Project folder or specific dependency file (e.g. requirements.txt, package.json).",
         exists=True,
     ),
     format: str = typer.Option(
         "table",
         "--format",
         "-f",
-        help="Output format: table, json, sarif",
+        help="Output format: table (terminal), json (report), sarif (GitHub/VS Code).",
     ),
     output: Path | None = typer.Option(
         None,
         "--output",
         "-o",
-        help="Output file path (required for json/sarif).",
+        help="Save report to file. Auto-set for json/sarif if omitted.",
     ),
     severity: str | None = typer.Option(
         None,
         "--severity",
         "-s",
-        help="Minimum severity filter: critical, high, medium, low",
+        help="Only show vulnerabilities at this level or above: critical, high, medium, low.",
     ),
     ignore_file: Path = typer.Option(
         Path(".vulnignore"),
         "--ignore-file",
-        help="Path to .vulnignore file.",
+        help="File with CVE IDs to ignore (one per line).",
     ),
     db_path: Path | None = typer.Option(
         None,
         "--db",
-        help="Path to vulnerability database.",
+        help="Custom path to vulnerability database.",
     ),
     ai_triage: bool = typer.Option(
         False,
         "--ai-triage",
-        help="Enable AI-powered vulnerability triage via Ollama.",
+        help="Use local AI (Ollama) to analyze each vulnerability in your code context.",
     ),
     model: str = typer.Option(
         "",
         "--model",
-        help="Ollama model for AI triage (default: from config or mistral).",
+        help="AI model to use (e.g. llama3:8b, mistral). Uses config default if omitted.",
     ),
-    verbose: bool = typer.Option(False, "--verbose", "-v"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed logs."),
 ) -> None:
     _setup_logging(verbose)
 
@@ -247,16 +257,20 @@ def _run_ai_triage(result: ScanResult, paths: list[Path], ai_triage: bool, model
 
     effective_model = model or cfg.get("model", "mistral")
     ollama_url = cfg.get("ollama_url", "http://localhost:11434")
+    lang = cfg.get("language", "en")
 
     from vulnhunter.ai.triage import TriageEngine
 
-    engine = TriageEngine(model=effective_model, ollama_url=ollama_url)
+    engine = TriageEngine(model=effective_model, ollama_url=ollama_url, language=lang)
 
     if not engine.is_available():
-        console.print(
-            "\n[bold yellow]AI Triage:[/] Ollama is not available. "
-            "Start it with [bold]ollama serve[/bold] or disable AI triage in config."
-        )
+        msg_unavail = {
+            "pt": "\n[bold yellow]Triagem IA:[/] Ollama nao disponivel. "
+                  "Inicie com [bold]ollama serve[/bold] ou desative no config.",
+            "en": "\n[bold yellow]AI Triage:[/] Ollama is not available. "
+                  "Start it with [bold]ollama serve[/bold] or disable in config.",
+        }
+        console.print(msg_unavail.get(lang, msg_unavail["en"]))
         return
 
     vuln_dicts = [
@@ -273,7 +287,12 @@ def _run_ai_triage(result: ScanResult, paths: list[Path], ai_triage: bool, model
 
     project_dir = paths[0] if paths[0].is_dir() else paths[0].parent
 
-    msg = f"\n[bold cyan]AI Triage[/bold cyan] ({effective_model}) analyzing {len(vuln_dicts)} vulnerabilities...\n"
+    analyzing_txt = "Analisando" if lang == "pt" else "Analyzing"
+    n = len(vuln_dicts)
+    if lang == "pt":
+        msg = f"\n[bold cyan]Triagem IA[/bold cyan] ({effective_model}) analisando {n} vulnerabilidades...\n"
+    else:
+        msg = f"\n[bold cyan]AI Triage[/bold cyan] ({effective_model}) analyzing {n} vulnerabilities...\n"
     console.print(msg)
 
     with Progress(
@@ -281,22 +300,27 @@ def _run_ai_triage(result: ScanResult, paths: list[Path], ai_triage: bool, model
         TextColumn("[progress.description]{task.description}"),
         console=console,
     ) as progress:
-        task = progress.add_task("Analyzing...", total=len(vuln_dicts))
+        task = progress.add_task(f"{analyzing_txt}...", total=len(vuln_dicts))
 
         def _progress_cb(current: int, total: int) -> None:
-            progress.update(task, completed=current, description=f"Analyzing {current}/{total}...")
+            progress.update(task, completed=current, description=f"{analyzing_txt} {current}/{total}...")
 
         triage_results = engine.triage_all(vuln_dicts, project_dir, callback=_progress_cb)
 
     from rich.table import Table
 
-    table = Table(title="AI Triage Results", show_lines=True)
+    title = "Resultados da Triagem IA" if lang == "pt" else "AI Triage Results"
+    col_risk = "Risco Real" if lang == "pt" else "Real Risk"
+    col_analysis = "Analise" if lang == "pt" else "Analysis"
+    col_action = "Acao" if lang == "pt" else "Action"
+
+    table = Table(title=title, show_lines=True)
     table.add_column("CVE", style="bold", width=18)
     table.add_column("Package", width=15)
     table.add_column("CVSS", width=10)
-    table.add_column("Real Risk", width=12)
-    table.add_column("Analysis", width=40)
-    table.add_column("Action", width=30)
+    table.add_column(col_risk, width=12)
+    table.add_column(col_analysis, width=40)
+    table.add_column(col_action, width=30)
 
     risk_colors = {
         "CRITICAL": "bold red",

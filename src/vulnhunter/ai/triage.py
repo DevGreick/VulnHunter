@@ -63,6 +63,7 @@ PROMPT_TEMPLATE: str = (
     "2. analysis: Brief explanation of why (1-2 sentences)\n"
     "3. recommendation: What the developer should do\n"
     "\n"
+    "IMPORTANT: Write analysis and recommendation in {language}.\n"
     'Respond in JSON format: {{"real_risk": "...", "analysis": "...", "recommendation": "..."}}'
 )
 
@@ -133,15 +134,23 @@ class CodeAnalyzer:
         return results
 
 
+LANG_NAMES: dict[str, str] = {
+    "en": "English",
+    "pt": "Brazilian Portuguese",
+}
+
+
 class TriageEngine:
     def __init__(
         self,
         model: str = "mistral",
         ollama_url: str = "http://localhost:11434",
+        language: str = "en",
     ) -> None:
         self._model: str = model
         self._ollama_url: str = ollama_url.rstrip("/")
         self._analyzer: CodeAnalyzer = CodeAnalyzer()
+        self._language: str = LANG_NAMES.get(language, "English")
 
     def is_available(self) -> bool:
         try:
@@ -172,6 +181,7 @@ class TriageEngine:
             severity=vuln.get("severity", "unknown"),
             summary=vuln.get("summary", "No description available"),
             code_refs_formatted=refs_text,
+            language=self._language,
         )
 
     def _call_ollama(self, prompt: str) -> dict[str, str]:
