@@ -1,20 +1,36 @@
 [project]
 name = "vulnhunter"
 version = "2.0.0"
-description = "Offline vulnerability scanner for project dependencies"
+description = "Offline vulnerability scanner with AI triage — your dependencies have secrets, VulnHunter finds them."
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
 authors = [{name = "DevGreick"}]
-keywords = ["security", "cve", "vulnerability", "scanner", "offline"]
+keywords = ["security", "cve", "vulnerability", "scanner", "offline", "sbom", "sca", "devsecops", "osv", "nvd", "sarif"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: System Administrators",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Security",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+    "Typing :: Typed",
 ]
+
+[project.urls]
+Homepage = "https://devgreick.github.io/VulnHunter/"
+Repository = "https://github.com/DevGreick/VulnHunter"
+Documentation = "https://devgreick.github.io/VulnHunter/"
+Issues = "https://github.com/DevGreick/VulnHunter/issues"
+Changelog = "https://github.com/DevGreick/VulnHunter/releases"
 dependencies = [
     "typer>=0.9.0,<1.0",
     "rich>=13.0.0,<14.0",
