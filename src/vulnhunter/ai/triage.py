@@ -60,6 +60,26 @@ ECOSYSTEM_PATTERNS: dict[str, Callable[[str], re.Pattern[str]]] = {
     ),
 }
 
+UNSAFE_PATTERNS: list[re.Pattern[str]] = [
+    re.compile(r"pickle\.loads?\s*\("),
+    re.compile(r"\beval\s*\("),
+    re.compile(r"\bexec\s*\("),
+    re.compile(r"subprocess\.(?:call|Popen)\s*\(.*shell\s*=\s*True"),
+    re.compile(r"os\.system\s*\("),
+    re.compile(r"requests\.(?:get|post|put|delete)\s*\(\s*[a-zA-Z_]"),
+    re.compile(r"\bopen\s*\(\s*[a-zA-Z_]"),
+]
+
+
+def _detect_usage_risk(snippet: str) -> str:
+    for pat in UNSAFE_PATTERNS:
+        if pat.search(snippet):
+            return "risky"
+    if snippet.strip():
+        return "safe"
+    return "unknown"
+
+
 SYSTEM_PROMPT: str = (
     "You are a cybersecurity analyst specialized in dependency vulnerability triage. "
     "You validate attack vectors against actual code usage. "
@@ -148,6 +168,7 @@ class CodeAnalyzer:
                                 "file": str(filepath.relative_to(project_dir)),
                                 "line": idx + 1,
                                 "snippet": snippet,
+                                "usage_risk": _detect_usage_risk(snippet),
                             }
                         )
 
@@ -199,13 +220,25 @@ class TriageEngine:
         semgrep_context: str = "",
     ) -> str:
         if code_refs:
-            refs_text: str = "\n".join(
+            dep_header: str = "DEPENDENCY TYPE: DIRECT (imported in project code)\n"
+            has_risky: bool = any(
+                ref.get("usage_risk") == "risky" for ref in code_refs
+            )
+            if has_risky:
+                dep_header += "WARNING: Unsafe usage patterns detected.\n"
+            refs_text: str = dep_header + "\n".join(
                 f"File: {ref['file']} (line {ref['line']}):\n{ref['snippet']}"
                 for ref in code_refs
             )
         else:
             refs_text = (
-                "No direct imports found. This package may be a transitive dependency."
+                "DEPENDENCY TYPE: TRANSITIVE (not imported)\n"
+                "This package has NO direct imports in the project code. "
+                "It exists only as a transitive dependency. "
+                "Unless the vulnerability affects the package's internal API "
+                "used by other dependencies, the risk is LOW. "
+                "Do NOT speculate about potential risks — if there's no "
+                "evidence of usage, classify as LOW or IRRELEVANT."
             )
 
         fixed_ver: str = vuln.get("fixed_version", "")

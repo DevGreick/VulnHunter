@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img alt="Python" src="https://img.shields.io/badge/Python-3.8%2B-3776AB?logo=python&logoColor=white">
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green">
   <img alt="Offline" src="https://img.shields.io/badge/100%25-Offline-00e5ff">
   <img alt="AI Triage" src="https://img.shields.io/badge/AI_Triage-Ollama-ff6f00?logo=ai&logoColor=white">

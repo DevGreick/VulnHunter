@@ -1,0 +1,5 @@
+# VulnHunter ignore file
+# One CVE/GHSA ID per line
+# Example:
+# CVE-2021-12345
+# GHSA-xxxx-yyyy-zzzz

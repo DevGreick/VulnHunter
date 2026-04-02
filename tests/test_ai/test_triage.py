@@ -1,7 +1,37 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from vulnhunter.ai.triage import CodeAnalyzer, TriageEngine
+import pytest
+from pydantic import ValidationError
+
+from vulnhunter.ai.triage import DISCLAIMER, CodeAnalyzer, TriageEngine, TriageResponse
+
+
+def test_triage_response_valid_risk_levels() -> None:
+    for level in ["CRITICAL", "HIGH", "MEDIUM", "LOW", "IRRELEVANT", "UNKNOWN"]:
+        resp = TriageResponse(real_risk=level, analysis="test", recommendation="test")
+        assert resp.real_risk == level
+
+
+def test_triage_response_rejects_invalid_risk() -> None:
+    with pytest.raises(ValidationError):
+        TriageResponse(real_risk="INVALID", analysis="test", recommendation="test")
+
+
+def test_triage_response_rejects_lowercase_risk() -> None:
+    with pytest.raises(ValidationError):
+        TriageResponse(real_risk="high", analysis="test", recommendation="test")
+
+
+def test_code_analyzer_find_imports_nonexistent_dir() -> None:
+    analyzer = CodeAnalyzer()
+    results = analyzer.find_imports(Path("/nonexistent/dir/abc123"), "flask", "pypi")
+    assert results == []
+
+
+def test_disclaimer_constant_exists() -> None:
+    assert isinstance(DISCLAIMER, str)
+    assert len(DISCLAIMER) > 0
 
 
 def test_code_analyzer_find_python_imports(tmp_path: Path) -> None:
