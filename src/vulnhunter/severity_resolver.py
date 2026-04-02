@@ -113,24 +113,25 @@ def resolve_severity(
     vuln_id: str,
     current_severity: str,
     summary: str,
-) -> tuple[str, bool]:
+    original_source: str = "OSV",
+) -> tuple[str, bool, str]:
     if current_severity and current_severity != "UNKNOWN":
-        return current_severity, False
+        return current_severity, False, original_source
 
     nvd_severity = _resolve_from_nvd(db, vuln_id)
     if nvd_severity:
         logger.debug("Resolved %s severity via NVD: %s", vuln_id, nvd_severity)
-        return nvd_severity, False
+        return nvd_severity, False, f"{original_source}+NVD"
 
     cwe_severity = _resolve_from_cwe(summary)
     if cwe_severity:
         logger.debug("Resolved %s severity via CWE: %s", vuln_id, cwe_severity)
-        return cwe_severity, True
+        return cwe_severity, True, original_source
 
     keyword_severity = _resolve_from_keywords(summary)
     if keyword_severity:
         logger.debug("Resolved %s severity via keywords: %s", vuln_id, keyword_severity)
-        return keyword_severity, True
+        return keyword_severity, True, original_source
 
     logger.debug("Fallback MEDIUM for %s", vuln_id)
-    return "MEDIUM", True
+    return "MEDIUM", True, original_source

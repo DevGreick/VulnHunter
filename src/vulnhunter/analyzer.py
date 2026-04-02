@@ -139,8 +139,8 @@ def analyze(
                 ignored_count += 1
                 continue
 
-            resolved_str, is_estimated = resolve_severity(
-                db, vuln_id, severity_str, summary or "",
+            resolved_str, is_estimated, resolved_source = resolve_severity(
+                db, vuln_id, severity_str, summary or "", source,
             )
             try:
                 sev = Severity(resolved_str.upper())
@@ -151,7 +151,7 @@ def analyze(
 
             vuln = Vulnerability(
                 vuln_id=vuln_id,
-                source=source,
+                source=resolved_source,
                 name=dep.name,
                 version=dep.version,
                 ecosystem=dep.ecosystem,
